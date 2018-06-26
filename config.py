@@ -9,7 +9,7 @@ DB_PORT = 27017
 DB_NAME = 'test_report'
 
 # 原始数据集合名称
-RAW_COLLECTION_NAME = 'tbl_report_raw4'
+RAW_COLLECTION_NAME = 'tbl_report_raw5'
 # 合并数据集合名称
 MIN_COLLECTION_NAME = 'tbl_report_min'
 
