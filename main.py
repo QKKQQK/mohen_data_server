@@ -19,8 +19,8 @@ class UploadHandler(tornado.web.RequestHandler):
         data = []
         try:
             data = loads(self.request.body)['data']
-        except Exception as e:
-            self.write({"code" : 1, "err_msg" : str(e)})
+        except Exception:
+            self.write({"code" : 1, "err_msg" : "上传数据格式错误"})
             self.flush()
             self.finish()
 
@@ -40,7 +40,7 @@ class UploadHandler(tornado.web.RequestHandler):
                         n_insert += 1
                 except Exception as e:
                     err_with_id.append({'_id' : json.loads(dumps(record['_id'])), 'err_msg' : str(e)})
-            code = 0 if len(err_with_id) == 0 else 1
+            code = 0 if len(err_with_id) == 0 else 2
             res = {
                 'code' : code,
                 'data' : {
