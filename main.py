@@ -8,8 +8,9 @@ import os
 import sys
 import pprint
 import json
-from bson.json_util import dumps
-from bson.json_util import loads
+import ReportRecord
+import bson.json_util as bson
+from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError
 from pprint import pprint
 
@@ -18,38 +19,47 @@ class UploadHandler(tornado.web.RequestHandler):
     async def post(self):
         data = []
         try:
-            data = loads(self.request.body)['data']
-        except Exception:
-            self.write({"code" : 1, "err_msg" : "上传数据格式错误"})
+            data = json.loads(self.request.body)['data']
+        except Exception as e:
+            self.write({'code' : 1, 'err_msg' : '\'data\'字段格式错误'})
             self.flush()
             self.finish()
 
-        if data: 
-            success_id = []
-            err_with_id = []
+        if data:
+            inserted_ids = []
+            updated_ids = []
+            err_ids_with_msgs = []
             n_insert = 0
             n_overwrite = 0
             for record in data:
                 try:
-                    existing_data = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME].find_one_and_update( \
-                        {'_id' : record['_id']}, {'$set' : record}, upsert = True, return_document=False)
-                    success_id.append(json.loads(dumps(record['_id'])))
+                    record_obj = ReportRecord.ReportRecord(record)
+                    record_bson = bson.loads(record_obj.toJSON())
+                    existing_data = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME] \
+                            .find_one_and_update( \
+                                {'_id' : record_bson['_id']}, \
+                                {'$set' : record_bson}, upsert = True)
                     if existing_data:
+                        updated_ids.append(record['_id'])
                         n_overwrite += 1
                     else:
+                        inserted_ids.append(record['_id'])
                         n_insert += 1
                 except Exception as e:
-                    err_with_id.append({'_id' : json.loads(dumps(record['_id'])), 'err_msg' : str(e)})
-            code = 0 if len(err_with_id) == 0 else 2
+                    err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : str(e)})
+
+            code = 0 if len(err_ids_with_msgs) == 0 else 2
+
             res = {
                 'code' : code,
                 'data' : {
-                    'success_id' : success_id,
-                    'err_with_id' : err_with_id,
+                    'inserted_ids' : inserted_ids,
+                    'updated_ids' : updated_ids,
+                    'err_ids_with_msgs' : err_ids_with_msgs
                 },
                 'count' : {
-                    'success' : len(success_id),
-                    'fail' : len(err_with_id),
+                    'success' : len(inserted_ids) + len(updated_ids),
+                    'fail' : len(err_ids_with_msgs),
                     'n_insert' : n_insert,
                     'n_overwrite' : n_overwrite
                 }
