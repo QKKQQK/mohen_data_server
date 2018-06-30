@@ -14,6 +14,14 @@ from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError
 from pprint import pprint
 
+def validate_id(_id):
+    try:
+        data = json.loads(_id)
+        _id_hex = data['$oid']
+        return True
+    except:
+        return False
+
 class UploadHandler(tornado.web.RequestHandler):
     
     async def post(self):
@@ -34,6 +42,9 @@ class UploadHandler(tornado.web.RequestHandler):
             for record in data:
                 try:
                     record_obj = ReportRecord.ReportRecord(record)
+                except Exception as e:
+                    err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})
+                try:
                     record_bson = bson.loads(record_obj.toJSON())
                     existing_data = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME] \
                             .find_one_and_update( \
@@ -46,7 +57,8 @@ class UploadHandler(tornado.web.RequestHandler):
                         inserted_ids.append(record['_id'])
                         n_insert += 1
                 except Exception as e:
-                    err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : str(e)})
+                    if '_id' in record:
+                        err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : str(e)})
 
             code = 0 if len(err_ids_with_msgs) == 0 else 2
 
@@ -66,20 +78,7 @@ class UploadHandler(tornado.web.RequestHandler):
             }
             self.write(res)
             self.flush()
-            self.finish()
-
-        # except BulkWriteError as err:
-        #     res = {
-        #         "code" : 1,
-        #         "mongo_code" : err.details["writeErrors"][0]["code"],
-        #         "err_record" : err.details["writeErrors"][0]["op"],
-        #         "err_index" : err.details["writeErrors"][0]["index"],
-        #         "n_inserted" : err.details["nInserted"]
-        #     }
-        #     self.write(dumps(res))
-        #     self.flush()
-        # result = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME].insert_many(data)
-            
+            self.finish()            
 
 def main():
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]

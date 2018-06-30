@@ -1,5 +1,6 @@
 import json 
 import sys
+from bson.objectid import ObjectId
 
 empty_id = {'$oid' : '000000000000000000000000'}
 
