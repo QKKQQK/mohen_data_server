@@ -6,9 +6,6 @@ import ast
 
 empty_id = {'$oid' : '000000000000000000000000'}
 
-def cleanup_id(_id_dict_str):
-	return bson.json_util.dumps(ObjectId(_id_dict_str))
-
 class ReportRecord:
 	def __init__(self, data):
 		self._id = data['_id']
