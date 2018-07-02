@@ -18,3 +18,6 @@ CHUNK_SIZE = 1024 * 512
 
 # GET /data 返回数据数量限制
 GET_LIMIT = 1000
+
+# 归一化Log10最大值参数
+CONFIG.LOG10_MAX = 300.0

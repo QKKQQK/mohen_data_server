@@ -5,21 +5,29 @@ import tornado.escape
 import motor.motor_tornado
 import config as CONFIG
 import os
+import string
+import ast
 import sys
 import pprint
+import bson.errors
 import json
 import ReportRecord
-import bson.json_util as bson
+import bson.json_util
 from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError
 from pprint import pprint
 
-def validate_id(_id):
+def log10_normalize(input):
+    if input <= 1:
+        return 0.0
+    norm = numpy.log10(input) / numpy.log10(CONFIG.LOG10_MAX)
+    return norm if norm < 1.0 else 1.0
+
+def validate_id_input_type(record):
     try:
-        data = json.loads(_id)
-        _id_hex = data['$oid']
-        return True
-    except:
+        if not isinstance(record['_id'], dict):
+
+    except Exception:
         return False
 
 class UploadHandler(tornado.web.RequestHandler):
@@ -29,7 +37,7 @@ class UploadHandler(tornado.web.RequestHandler):
         try:
             data = json.loads(self.request.body)['data']
         except Exception as e:
-            self.write({'code' : 1, 'err_msg' : '\'data\'字段格式错误'})
+            self.write({'code' : 1, 'err_msg' : '数据格式错误'})
             self.flush()
             self.finish()
 
@@ -42,20 +50,21 @@ class UploadHandler(tornado.web.RequestHandler):
             for record in data:
                 try:
                     record_obj = ReportRecord.ReportRecord(record)
-                except Exception as e:
-                    err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})
+                except ValueError as e:
+                    err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})   
                 try:
-                    record_bson = bson.loads(record_obj.toJSON())
-                    existing_data = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME] \
-                            .find_one_and_update( \
-                                {'_id' : record_bson['_id']}, \
-                                {'$set' : record_bson}, upsert = True)
-                    if existing_data:
-                        updated_ids.append(record['_id'])
-                        n_overwrite += 1
-                    else:
-                        inserted_ids.append(record['_id'])
-                        n_insert += 1
+                    if '_id' in record:
+                        record_bson = bson.json_util.loads(record_obj.toJSON())
+                        existing_data = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME] \
+                                .find_one_and_update( \
+                                    {'_id' : record_bson['_id']}, \
+                                    {'$set' : record_bson}, upsert = True)
+                        if existing_data:
+                            updated_ids.append(record['_id'])
+                            n_overwrite += 1
+                        else:
+                            inserted_ids.append(record['_id'])
+                            n_insert += 1
                 except Exception as e:
                     if '_id' in record:
                         err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : str(e)})

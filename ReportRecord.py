@@ -1,8 +1,13 @@
 import json 
 import sys
 from bson.objectid import ObjectId
+import bson.json_util
+import ast
 
 empty_id = {'$oid' : '000000000000000000000000'}
+
+def cleanup_id(_id_dict_str):
+	return bson.json_util.dumps(ObjectId(_id_dict_str))
 
 class ReportRecord:
 	def __init__(self, data):
@@ -27,7 +32,7 @@ class ReportRecord:
 		self.cfg = data['cfg'] if 'cfg' in data else ""
 		self.utc_date = data['utc_date']
 
-	def get_id(self):
+	def get_id_str(self):
 		return self._id
 
 	def toJSON(self):

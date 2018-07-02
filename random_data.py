@@ -1,4 +1,5 @@
 from bson.objectid import ObjectId
+import string
 import random
 import time as t
 import bson.json_util as bson
@@ -14,6 +15,12 @@ def random_id_from_int(n):
 	to_hex = format(random.randint(0, n), 'x')
 	to_hex = to_hex.zfill(24)
 	return str(to_hex)
+
+def _id_str_check(_id):
+	for char in _id:
+		if char not in string.hexdigits:
+			return False
+	return len(_id) == 24
 
 def rand_record():
 	utc_timestamp = t.time() + t.timezone
