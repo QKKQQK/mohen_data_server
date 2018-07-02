@@ -10,25 +10,20 @@ import ast
 import sys
 import pprint
 import bson.errors
+import numbers
 import json
 import ReportRecord
 import bson.json_util
 from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError
 from pprint import pprint
+import numpy
 
 def log10_normalize(input):
     if input <= 1:
         return 0.0
     norm = numpy.log10(input) / numpy.log10(CONFIG.LOG10_MAX)
     return norm if norm < 1.0 else 1.0
-
-def validate_id_input_type(record):
-    try:
-        if not isinstance(record['_id'], dict):
-
-    except Exception:
-        return False
 
 class UploadHandler(tornado.web.RequestHandler):
     
@@ -50,7 +45,7 @@ class UploadHandler(tornado.web.RequestHandler):
             for record in data:
                 try:
                     record_obj = ReportRecord.ReportRecord(record)
-                except ValueError as e:
+                except Exception as e:
                     err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})   
                 try:
                     if '_id' in record:
@@ -65,6 +60,7 @@ class UploadHandler(tornado.web.RequestHandler):
                         else:
                             inserted_ids.append(record['_id'])
                             n_insert += 1
+                        self.save_data_by_minute(record)
                 except Exception as e:
                     if '_id' in record:
                         err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : str(e)})
@@ -87,7 +83,22 @@ class UploadHandler(tornado.web.RequestHandler):
             }
             self.write(res)
             self.flush()
-            self.finish()            
+            self.finish()
+
+    def save_data_by_minute(self, record):
+        v1_norm = log10_normalize(record['v1'])
+        v2_norm = 0
+        v3_norm = {}
+        if 'v2' in record:
+            v2_norm = log10_normalize(record['v2'])
+        for key in record['v3'].keys():
+            if isinstance(record['v3'][key], numbers.Number):
+                v3_norm[(str(key)+'_norm')] = log10_normalize(record['v3'][key])
+        print('v1_norm', v1_norm)
+        print('v2_norm', v2_norm)
+        print('v3_norm', v3_norm)
+        sys.stdout.flush()
+
 
 def main():
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
