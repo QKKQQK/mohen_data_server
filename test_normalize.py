@@ -1,4 +1,5 @@
 import numpy
+import config as CONFIG
 
 def log10_normalize(input):
 	if input <= 1:
@@ -6,4 +7,27 @@ def log10_normalize(input):
 	norm = numpy.log10(input) / numpy.log10(CONFIG.LOG10_MAX)
 	return norm if norm < 1.0 else 1.0
 
-print(numpy.log10(177.5400769080493) / numpy.log10(300))
+def log10_add_normalize(a, b):
+	return numpy.log10(1 + b/a) / numpy.log10(CONFIG.LOG10_MAX)
+
+n = 10
+n_norm = log10_normalize(n)
+
+# $inc n 20
+inc_n = 20
+# n = 30
+n += inc_n
+
+# atomic operation returned val
+returned_n = 10
+n_norm_add = log10_add_normalize(10, 20)
+
+inc_n = 30
+n += inc_n
+
+returned_n_2 = 30
+n_norm_add_2 = log10_add_normalize(30, 30)
+
+print(n_norm + n_norm_add + n_norm_add_2)
+print(log10_normalize(n))
+

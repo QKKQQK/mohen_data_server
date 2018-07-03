@@ -69,11 +69,11 @@ class UploadHandler(tornado.web.RequestHandler):
                         else:
                             inserted_ids.append(record['_id'])
                             n_insert += 1
+                            await self.save_data_by_minute(record_bson)
                         
                 except Exception as e:
                     if '_id' in record:
                         err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : str(e)})
-                await self.save_data_by_minute(record_bson)
             code = 0 if len(err_ids_with_msgs) == 0 else 2
 
             res = {
@@ -106,7 +106,11 @@ class UploadHandler(tornado.web.RequestHandler):
         print('v2_norm', v2_norm)
         print('v3_norm', v3_norm)
 
-        datetime_begin = record['utc_date']
+        datetime_begin = datetime(year=record['utc_date'].year, \
+                                  month=record['utc_date'].month, \
+                                  day=record['utc_date'].day, \
+                                  hour=record['utc_date'].hour, \
+                                  minute=record['utc_date'].minute)
 
         datetime_end = datetime_begin + timedelta(minutes=1)
 
@@ -117,7 +121,7 @@ class UploadHandler(tornado.web.RequestHandler):
         print(type(datetime_end))
         print(datetime_end)
         sys.stdout.flush()
-        existing_data = await self.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
+        after_update_data = await self.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
                 .find_one_and_update( \
                     {'pid' : record_bson['pid'], \
                     'name' : record_bson['name'], \
@@ -140,12 +144,9 @@ class UploadHandler(tornado.web.RequestHandler):
                                'utc_date' : datetime_begin
                     }, \
                     '$inc' : generate_v_val_inc_query(record_bson) \
-                    }, upsert = True)
-        return 1
-        # except Exception as e:
-        #     print(str(e))
-        #     sys.stdout.flush()
-        #     return 0
+                    }, upsert=True, \
+                    returnNewDocument=True)
+        print(type(after_update_data))
 
 def main():
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
