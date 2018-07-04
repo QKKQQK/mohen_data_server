@@ -16,6 +16,7 @@ import ReportRecord
 import bson.json_util
 from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError
+from pymongo import ReturnDocument
 from pprint import pprint
 from datetime import datetime, timedelta
 import numpy
@@ -24,7 +25,12 @@ def log10_normalize(input):
     if input <= 1:
         return 0.0
     norm = numpy.log10(input) / numpy.log10(CONFIG.LOG10_MAX)
-    return norm if norm < 1.0 else 1.0
+    return norm
+
+def log10_add_normalize(a, b):
+    if a == 0:
+        return log10_normalize(b)
+    return numpy.log10(1 + b/a) / numpy.log10(CONFIG.LOG10_MAX)
 
 def generate_v_val_inc_query(record_bson):
     result = {}
@@ -69,7 +75,7 @@ class UploadHandler(tornado.web.RequestHandler):
                         else:
                             inserted_ids.append(record['_id'])
                             n_insert += 1
-                            await self.save_data_by_minute(record_bson)
+                            await self.update_min_collection(record_bson)
                         
                 except Exception as e:
                     if '_id' in record:
@@ -94,18 +100,7 @@ class UploadHandler(tornado.web.RequestHandler):
             self.flush()
             self.finish()
 
-    async def save_data_by_minute(self, record):
-        v1_norm = log10_normalize(record['v1'])
-        v2_norm = 0
-        v3_norm = {}
-        if 'v2' in record:
-            v2_norm = log10_normalize(record['v2'])
-        for key in record['v3'].keys():
-            v3_norm[(str(key)+'_norm')] = log10_normalize(record['v3'][key])
-        print('v1_norm', v1_norm)
-        print('v2_norm', v2_norm)
-        print('v3_norm', v3_norm)
-
+    async def update_min_collection(self, record):
         datetime_begin = datetime(year=record['utc_date'].year, \
                                   month=record['utc_date'].month, \
                                   day=record['utc_date'].day, \
@@ -113,14 +108,10 @@ class UploadHandler(tornado.web.RequestHandler):
                                   minute=record['utc_date'].minute)
 
         datetime_end = datetime_begin + timedelta(minutes=1)
-
-        #try:
         record_bson = record
-        print(type(datetime_begin))
-        print(datetime_begin)
-        print(type(datetime_end))
-        print(datetime_end)
-        sys.stdout.flush()
+        inc_val = generate_v_val_inc_query(record_bson)
+
+        
         after_update_data = await self.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
                 .find_one_and_update( \
                     {'pid' : record_bson['pid'], \
@@ -143,10 +134,33 @@ class UploadHandler(tornado.web.RequestHandler):
                                'cfg' : record_bson['cfg'], \
                                'utc_date' : datetime_begin
                     }, \
-                    '$inc' : generate_v_val_inc_query(record_bson) \
+                    '$inc' : inc_val \
                     }, upsert=True, \
-                    returnNewDocument=True)
-        print(type(after_update_data))
+                    return_document=ReturnDocument.AFTER)
+        inc_val_dict = {}
+        inc_val_dict['v1'] = record_bson['v1']
+        inc_val_dict['v2'] = record_bson['v2']
+        inc_val_dict['v3'] = record_bson['v3']
+        await self.update_min_collection_norm_val(after_update_data, inc_val_dict)
+
+    async def update_min_collection_norm_val(self, new_record, inc):
+        print(new_record)
+        print(inc)
+        sys.stdout.flush()
+        inc_params = {}
+        inc_params['v1_norm'] = log10_add_normalize(new_record['v1'] - inc['v1'], inc['v1'])
+        inc_params['v2_norm'] = log10_add_normalize(new_record['v2'] - inc['v2'], inc['v2'])
+        for key in new_record['v3'].keys():
+            if key in inc['v3']:
+                inc_params['v3_norm.'+str(key)] = log10_add_normalize( \
+                        new_record['v3'][key] - inc['v3'][key], inc['v3'][key])
+        print(inc_params)
+        sys.stdout.flush()
+        after_update_data = await self.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
+                .find_one_and_update(
+                    {'_id' : new_record['_id']},
+                    {'$inc' : inc_params}, upsert=True)
+
 
 def main():
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
