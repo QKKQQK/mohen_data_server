@@ -31,4 +31,4 @@ n_norm_add_2 = log10_add_normalize(30, 30)
 print(n_norm + n_norm_add + n_norm_add_2)
 print(log10_normalize(n))
 
-print(log10_normalize(1))
+print(log10_normalize(20))
