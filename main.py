@@ -1,25 +1,25 @@
+# python 3 modules
+import os
+import string
+import ast
+import datetime
+import sys
+import json
+
+# pip installed
 import tornado.ioloop
 import tornado.iostream
 import tornado.web
 import tornado.escape
 import motor.motor_tornado
-import config as CONFIG
-import os
-import string
-import ast
-import sys
-import pprint
-import bson.errors
-import numbers
-import json
-import ReportRecord
-import bson.json_util
-from bson.objectid import ObjectId
-from pymongo.errors import BulkWriteError
-from pymongo import ReturnDocument
-from pprint import pprint
-from datetime import datetime, timedelta
+import bson
+import pymongo
 import numpy
+
+# local files and modules
+import ReportRecord
+import CONFIG
+
 
 def log10_normalize(input):
     if input <= 1:
@@ -101,13 +101,13 @@ class UploadHandler(tornado.web.RequestHandler):
             self.finish()
 
     async def update_min_collection(self, record):
-        datetime_begin = datetime(year=record['utc_date'].year, \
+        datetime_begin = datetime.datetime(year=record['utc_date'].year, \
                                   month=record['utc_date'].month, \
                                   day=record['utc_date'].day, \
                                   hour=record['utc_date'].hour, \
                                   minute=record['utc_date'].minute)
 
-        datetime_end = datetime_begin + timedelta(minutes=1)
+        datetime_end = datetime_begin + datetime.timedelta(minutes=1)
         record_bson = record
         inc_val = generate_v_val_inc_query(record_bson)
 
@@ -136,7 +136,7 @@ class UploadHandler(tornado.web.RequestHandler):
                     }, \
                     '$inc' : inc_val \
                     }, upsert=True, \
-                    return_document=ReturnDocument.AFTER)
+                    return_document=pymongo.ReturnDocument.AFTER)
         inc_val_dict = {}
         inc_val_dict['v1'] = record_bson['v1']
         inc_val_dict['v2'] = record_bson['v2']
