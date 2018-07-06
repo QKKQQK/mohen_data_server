@@ -24,6 +24,36 @@ import docs.conf as CONFIG
 class UploadHandler(tornado.web.RequestHandler):
     
     async def post(self):
+        """处理 POST /data 请求
+
+        [原始数据]：第三方上传数据
+        [合并数据]：按分钟合并的原始数据
+
+        数据库操作(最多3次，用括号中数字标注)：
+        * 将[原始数据]储存进docs/conf.py定义的[原始数据]集合(1)
+            * 如果_id已经存在，更新[合并数据]集合中相应的数据(2)
+                * 注：覆盖已有的[原始数据]不会更改[合并数据]集合中的eid和cfg字段，
+                  如果需要更改eid和cfg字段需要新建并上传一个_id不同时间相同的[原始数据]
+                * 根据更新值计算归一值并更新[合并数据]集合中相应数据的归一值(3)
+            * 如果_id不存在，创建或更新[合并数据】集合表中相应的数据(2)
+                * 根据更新值计算归一值并更新[合并数据]集合中相应数据的归一值(3)
+    
+        返回：
+            code:
+                0：无异常
+                1：请求body不存在'data' key
+                2：服务器内部错误
+            data:
+                inserted_ids：成功创建的[原始数据]_id
+                updated_ids：覆盖已有数据的[原始数据]_id
+                err_ids_with_msgs：有异常的[原始数据]_id及异常信息
+            count:
+                success：创建/覆盖成功的[原始数据]数量
+                fail：创建/覆盖失败的[原始数据]数量
+                n_insert：成功创建的[原始数据]数量
+                n_overwrite：成功覆盖已有数据的[原始数据]数量
+
+        """
         req_data = []
         try:
             req_data = json.loads(self.request.body)['data']
@@ -56,7 +86,7 @@ class UploadHandler(tornado.web.RequestHandler):
                         else:
                             res_inserted_ids.append(record['_id'])
                             res_n_insert += 1
-                            await self.update_min_collection(record_bson)
+                            await core.update_min_collection(self, record_bson)
                 except Exception as e:
                     if '_id' in record:
                         res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : '服务器内部错误'})
@@ -80,68 +110,10 @@ class UploadHandler(tornado.web.RequestHandler):
             self.flush()
             self.finish()
 
-    async def update_min_collection(self, record):
-        datetime_begin = datetime.datetime(year=record['utc_date'].year, \
-                                  month=record['utc_date'].month, \
-                                  day=record['utc_date'].day, \
-                                  hour=record['utc_date'].hour, \
-                                  minute=record['utc_date'].minute)
-
-        datetime_end = datetime_begin + datetime.timedelta(minutes=1)
-        record_bson = record
-        inc_val = helpers.generate_v_val_inc_query(record_bson)
-
-        
-        after_update_data = await self.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
-                .find_one_and_update( \
-                    {'pid' : record_bson['pid'], \
-                    'name' : record_bson['name'], \
-                    'flag' : 1, \
-                    'exttype' : record_bson['exttype'], \
-                    'type' : record_bson['exttype'], \
-                    'tag' : record_bson['tag'], \
-                    'klist' : record_bson['klist'], \
-                    'rlist' : record_bson['rlist'], \
-                    'extlist' : record_bson['extlist'], \
-                    'ugroup' : record_bson['ugroup'], \
-                    'uid' : record_bson['uid'], \
-                    'fid' : record_bson['fid'], \
-                    'openid' : record_bson['openid'], \
-                    'utc_date' : {'$gte' : datetime_begin, \
-                                  '$lt' : datetime_end}
-                    }, \
-                    {'$set' : {'eid' : record_bson['eid'], \
-                               'cfg' : record_bson['cfg'], \
-                               'utc_date' : datetime_begin
-                    }, \
-                    '$inc' : inc_val \
-                    }, upsert=True, \
-                    return_document=pymongo.ReturnDocument.AFTER)
-        inc_val_dict = {}
-        inc_val_dict['v1'] = record_bson['v1']
-        inc_val_dict['v2'] = record_bson['v2']
-        inc_val_dict['v3'] = record_bson['v3']
-        await self.update_min_collection_norm_val(after_update_data, inc_val_dict)
-
-    async def update_min_collection_norm_val(self, new_record, inc):
-        inc_params = {}
-        inc_params['v1_norm'] = core.log10_addition_normalize(new_record['v1'] - inc['v1'], inc['v1'])
-        inc_params['v2_norm'] = core.log10_addition_normalize(new_record['v2'] - inc['v2'], inc['v2'])
-        for key in new_record['v3'].keys():
-            if key in inc['v3']:
-                inc_params['v3_norm.'+str(key)] = core.log10_addition_normalize( \
-                        new_record['v3'][key] - inc['v3'][key], inc['v3'][key])
-        print(inc_params)
-        sys.stdout.flush()
-        after_update_data = await self.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
-                .find_one_and_update(
-                    {'_id' : new_record['_id']},
-                    {'$inc' : inc_params}, upsert=True)
-
 def main():
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
     application = tornado.web.Application([
-        (r'/upload', UploadHandler)
+        (r'/data', UploadHandler)
     ], db=db)
     application.listen(CONFIG.PORT)
     tornado.ioloop.IOLoop.current().start()
