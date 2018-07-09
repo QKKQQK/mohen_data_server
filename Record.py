@@ -7,6 +7,12 @@ empty_id = {'$oid' : '000000000000000000000000'}
 # RawRecord类，代表[原始数据]
 class RawRecord:
 	def __init__(self, data):
+		"""创建一个RawRecord实例
+
+		参数：
+	        data (dict)：RawRecord实例的[原始数据]
+
+		"""
 		self._id = data['_id']
 		self.pid = data['pid'] if 'pid' in data else empty_id
 		self.name = data['name'] if 'name' in data else ""
@@ -29,7 +35,19 @@ class RawRecord:
 		self.utc_date = data['utc_date']
 
 	def to_json_str(self):
+		"""把实例转换成JSON字符串
+
+		返回：
+			String：当前实例转换成的JSON字符串
+
+		"""
 		return json.dumps(self, default=lambda o: o.__dict__, indent=4)
 
 	def to_bson(self):
+		"""把当前实例的JSON字符串转换成BSON格式的dict
+
+		返回：
+			dict：BSON格式的当前实例
+
+		"""
 		return bson.json_util.loads(self.to_json_str())
