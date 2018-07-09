@@ -41,7 +41,7 @@ class UploadHandler(tornado.web.RequestHandler):
         返回：
             code:
                 0：无异常
-                1：请求body不存在'data' key
+                1：请求body不存在'data'键
                 2：服务器内部错误
             data:
                 inserted_ids：成功创建的[原始数据]_id
@@ -55,43 +55,57 @@ class UploadHandler(tornado.web.RequestHandler):
 
         """
         req_data = []
+        # 检测请求boby部分否存在'data'键
         try:
             req_data = json.loads(self.request.body)['data']
         except Exception as e:
+            # 将错误信息写入输出缓冲区
             self.write({'code' : 1, 'err_msg' : '数据格式错误'})
+            # 将输出缓冲区的信息输出到scoket
             self.flush()
+            # 结束HTTP请求
             self.finish()
 
+        # 如果'data'键值对存在
         if req_data:
-            res_inserted_ids = []
-            res_updated_ids = []
-            res_err_ids_with_msgs = []
-            res_n_insert = 0
-            res_n_overwrite = 0
+            res_inserted_ids = []  # 成功创建的数据_id
+            res_updated_ids = []  # 成功覆盖原有数据的数据_id
+            res_err_ids_with_msgs = []  # 触发异常的数据的_id与异常信息
+            res_n_insert = 0  # 成功创建的数据数量
+            res_n_overwrite = 0  # 成功覆盖原有数据的数据数量
+            # 逐条处理上传的数据
             for record in req_data:
+                valid_record = True  # 标注当前数据格式是否正确
                 try:
+                    # 使用数据创建Record类，检测必需字段格式，为非必需字段插入默认值
                     record_obj = Record(record)
                 except Exception as e:
-                    res_err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})   
+                    # 记录格式出错的数据的_id和异常信息
+                    res_err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})
+                    valid_record = False   
                 try:
-                    if '_id' in record:
+                    if valid_record:
+                        # 将JSON格式的Record类转换成BSON(例：将'$oid'转换成ObjectId类型)
                         record_bson = bson.json_util.loads(record_obj.toJSON())
+                        # 异步插入数据，如_id已存在，覆盖原有数据并返回原有数据，否则插入的数据并返回None
                         record_before_update = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME] \
                                 .find_one_and_update( \
                                     {'_id' : record_bson['_id']}, \
                                     {'$set' : record_bson}, upsert = True)
+                        # 根据数据是否被覆盖记录统计数据
                         if record_before_update:
                             res_updated_ids.append(record['_id'])
                             res_n_overwrite += 1
                         else:
                             res_inserted_ids.append(record['_id'])
                             res_n_insert += 1
+                            # 异步更新[合并数据]集合
                             await core.update_min_collection(self, record_bson)
                 except Exception as e:
                     if '_id' in record:
                         res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : '服务器内部错误'})
             res_code = 0 if len(res_err_ids_with_msgs) == 0 else 2
-
+            # HTTP响应
             res = {
                 'code' : res_code,
                 'data' : {
@@ -111,11 +125,19 @@ class UploadHandler(tornado.web.RequestHandler):
             self.finish()
 
 def main():
+    """配置服务端，启用事件循环
+
+    创建Tornado实例，配置Motor异步MongoDB连接库，HTTP请求路由，
+    设置端口，启用事件循环
+
+    """
+    # 配置Motor异步MongoDB连接库
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
     application = tornado.web.Application([
         (r'/data', UploadHandler)
     ], db=db)
     application.listen(CONFIG.PORT)
+    # 启用非阻塞事件循环
     tornado.ioloop.IOLoop.current().start()
 
 if __name__ == "__main__":
