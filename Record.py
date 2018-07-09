@@ -1,12 +1,9 @@
-import json 
-import sys
-from bson.objectid import ObjectId
+import json
 import bson.json_util
-import ast
 
 empty_id = {'$oid' : '000000000000000000000000'}
 
-class ReportRecord:
+class Record:
 	def __init__(self, data):
 		self._id = data['_id']
 		self.pid = data['pid'] if 'pid' in data else empty_id

@@ -17,7 +17,7 @@ import pymongo
 import numpy
 
 # 本地文件，模块
-from ReportRecord import ReportRecord as Record
+from Record import Record
 from service import core, helpers
 import docs.conf as CONFIG
 
