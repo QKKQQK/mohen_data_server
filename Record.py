@@ -1,4 +1,7 @@
+# python 3.6 模块
 import json
+
+# pip 安装模块
 import bson.json_util
 
 # ObjectId类默认值
