@@ -85,8 +85,8 @@ class UploadHandler(tornado.web.RequestHandler):
                     valid_record = False   
                 try:
                     if valid_record:
-                        # 将JSON格式的Record类转换成BSON(例：将'$oid'转换成ObjectId类型)
-                        record_bson = bson.json_util.loads(record_obj.toJSON())
+                        # 将Record类转换成BSON(例：将'$oid'转换成ObjectId类型)
+                        record_bson = record_obj.to_bson()
                         # 异步插入数据，如_id已存在，覆盖原有数据并返回原有数据，否则插入的数据并返回None
                         record_before_update = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME] \
                                 .find_one_and_update( \

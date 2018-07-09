@@ -32,5 +32,8 @@ class ReportRecord:
 	def get_id_str(self):
 		return self._id
 
-	def toJSON(self):
+	def to_json(self):
 		return json.dumps(self, default=lambda o: o.__dict__, indent=4)
+
+	def to_bson(self):
+		return bson.json_util.loads(self.to_json())
