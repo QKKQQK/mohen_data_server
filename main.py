@@ -17,7 +17,7 @@ import pymongo
 import numpy
 
 # 本地文件，模块
-from Record import Record
+from Record import RawRecord
 from service import core, helpers
 import docs.conf as CONFIG
 
@@ -77,8 +77,8 @@ class UploadHandler(tornado.web.RequestHandler):
             for record in req_data:
                 valid_record = True  # 标注当前数据格式是否正确
                 try:
-                    # 使用数据创建Record类，检测必需字段格式，为非必需字段插入默认值
-                    record_obj = Record(record)
+                    # 使用[原始数据]创建RawRecord类，检测必需字段格式，为非必需字段插入默认值
+                    record_obj = RawRecord(record)
                 except Exception as e:
                     # 记录格式出错的数据的_id和异常信息
                     res_err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})

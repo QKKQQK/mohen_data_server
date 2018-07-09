@@ -1,9 +1,11 @@
 import json
 import bson.json_util
 
+# ObjectId类默认值
 empty_id = {'$oid' : '000000000000000000000000'}
 
-class Record:
+# RawRecord类，代表[原始数据]
+class RawRecord:
 	def __init__(self, data):
 		self._id = data['_id']
 		self.pid = data['pid'] if 'pid' in data else empty_id
@@ -26,11 +28,8 @@ class Record:
 		self.cfg = data['cfg'] if 'cfg' in data else ""
 		self.utc_date = data['utc_date']
 
-	def get_id_str(self):
-		return self._id
-
-	def to_json(self):
+	def to_json_str(self):
 		return json.dumps(self, default=lambda o: o.__dict__, indent=4)
 
 	def to_bson(self):
-		return bson.json_util.loads(self.to_json())
+		return bson.json_util.loads(self.to_json_str())
