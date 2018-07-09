@@ -9,7 +9,7 @@ DB_PORT = 27017
 DB_NAME = 'test_report'
 
 # 原始数据集合名称
-RAW_COLLECTION_NAME = 'tbl_report_raw4'
+RAW_COLLECTION_NAME = 'tbl_report_raw5'
 # 合并数据集合名称
 MIN_COLLECTION_NAME = 'tbl_report_min'
 
@@ -18,3 +18,6 @@ CHUNK_SIZE = 1024 * 512
 
 # GET /data 返回数据数量限制
 GET_LIMIT = 1000
+
+# 归一化Log10最大值参数
+LOG10_MAX = 300.0
