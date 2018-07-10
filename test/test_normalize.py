@@ -54,5 +54,5 @@ v_norm_after_update = log10_normalize(2)
 # print('log10 diff + log10 before add: ', v_norm_before_update + log10_add_normalize(100, -120))
 # print('log10 expected norm: ', 0)
 
-print(log10_normalize(20))
+print(log10_normalize(50))
 

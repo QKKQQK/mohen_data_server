@@ -36,6 +36,11 @@ def generate_v_val_inc_query(record_bson, record_bson_old={}):
     for key in record_bson['v3'].keys():
         result[''.join(['v3.', key])] = record_bson['v3'][key] - (record_bson_old['v3'][key] if record_bson_old and key in record_bson_old['v3'] else 0)
         result_dict['v3'][key] = result[''.join(['v3.', key])]
+    if record_bson_old:
+        for key in record_bson_old['v3'].keys():
+            if key not in record_bson['v3'].keys():
+                result[''.join(['v3.', key])] = -record_bson_old['v3'][key]
+                result_dict['v3'][key] = result[''.join(['v3.', key])]
     return result, result_dict
 
 def log10_normalize(n):
