@@ -15,7 +15,7 @@ import numpy
 import docs.conf as CONFIG
 from service import helpers
 
-async def update_min_collection(handler, record_bson):
+async def update_min_collection(handler, record_bson, record_bson_old={}):
     """更新[合并数据]的v1, v2, v3数值
     
     将相似的[原始数据]合并至同一分钟级，
@@ -37,7 +37,10 @@ async def update_min_collection(handler, record_bson):
     # 计算合并时间范围上限
     datetime_end = datetime_begin + datetime.timedelta(minutes=1)
     # 符合$inc所需格式的v1, v2, v3增值
-    inc_val = helpers.generate_v_val_inc_query(record_bson)
+    if record_bson_old:
+        inc_val, inc_val_dict = helpers.generate_v_val_inc_query(record_bson, record_bson_old=record_bson_old)
+    else:
+        inc_val, inc_val_dict = helpers.generate_v_val_inc_query(record_bson)
     # 根据条件寻找符合条件的[合并数据]并更新，可以根据情况增减条件(会影响[合并数据]集合大小)
     after_update_data = await handler.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
             .find_one_and_update( \
@@ -66,12 +69,7 @@ async def update_min_collection(handler, record_bson):
                 }, upsert=True, \
                 # 返回更新后的新值
                 return_document=pymongo.ReturnDocument.AFTER)
-    #  dict格式的v1, v2, v3增值
-    inc = {}
-    inc['v1'] = record_bson['v1']
-    inc['v2'] = record_bson['v2']
-    inc['v3'] = record_bson['v3']
-    await update_min_collection_norm_val(handler, after_update_data, inc)
+    await update_min_collection_norm_val(handler, after_update_data, inc_val_dict)
 
 async def update_min_collection_norm_val(handler, new_record, inc):
     """更新[合并数据]的归一值

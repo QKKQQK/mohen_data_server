@@ -96,6 +96,8 @@ class UploadHandler(tornado.web.RequestHandler):
                         if record_before_update:
                             res_updated_ids.append(record['_id'])
                             res_n_overwrite += 1
+                            # 异步更新[合并数据]集合
+                            await core.update_min_collection(self, record_bson, record_bson_old=record_before_update)
                         else:
                             res_inserted_ids.append(record['_id'])
                             res_n_insert += 1

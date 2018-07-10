@@ -13,7 +13,7 @@ import numpy
 # 本地文件，模块
 import docs.conf as CONFIG
 
-def generate_v_val_inc_query(record_bson):
+def generate_v_val_inc_query(record_bson, record_bson_old={}):
     """生成符合find_one_and_update中$inc要求格式的v1，v2，v3值
 
     将dict格式的v3值从v3 : {attr : val}转化为v3.attr : val
@@ -27,11 +27,16 @@ def generate_v_val_inc_query(record_bson):
 
     """
     result = {}
-    result['v1'] = record_bson['v1']
-    result['v2'] = record_bson['v2']
+    result_dict = {}
+    result['v1'] = record_bson['v1'] - (record_bson_old['v1'] if record_bson_old else 0)
+    result['v2'] = record_bson['v2'] - (record_bson_old['v2'] if record_bson_old else 0)
+    result_dict['v1'] = result['v1']
+    result_dict['v2'] = result['v2']
+    result_dict['v3'] = {}
     for key in record_bson['v3'].keys():
-        result[''.join(['v3.', key])] = record_bson['v3'][key]
-    return result
+        result[''.join(['v3.', key])] = record_bson['v3'][key] - (record_bson_old['v3'][key] if record_bson_old and key in record_bson_old['v3'] else 0)
+        result_dict['v3'][key] = result[''.join(['v3.', key])]
+    return result, result_dict
 
 def log10_normalize(n):
     """使用log10公式计算归一值
@@ -68,30 +73,6 @@ def log10_addition_normalize(a, b):
     """
     if a == 0:
         return log10_normalize(b)
+    if a <= -b:
+        return -log10_normalize(a)
     return numpy.log10(1 + b/a) / numpy.log10(CONFIG.LOG10_MAX)
-
-def log10_diff_normalize(v_old, v_new):
-    """计算归一值差值，适用于更新已有[原始数据]后需要更新相应的[合并数据]的情况
-    
-    基于公式：log(a + b) = log(a) + log(1 + b/a)
-    当新值小于原值时，a为新值，b为(原值-新值)，返回负的归一值差值
-    当新值大于原值时，a为原值，b为(新值-原值)，返回正的归一值差值
-    当新值等于原值时，返回0
-
-    参数：
-        v_old (int/float)：数据的原值
-        v_new (int/float)：数据的新值
-
-    返回：
-        float：计算后的归一值差值
-
-    """
-    # 新值小于原值
-    if v_new < v_old:
-        return -log10_add_normalize(v_new, v_old - v_new)
-    # 新值大于原值
-    elif v_new > v_old:
-        return log10_add_normalize(v_old, v_new - v_old)
-    # 值不变
-    else:
-        return 0

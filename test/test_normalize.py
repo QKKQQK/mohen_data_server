@@ -9,13 +9,10 @@ def log10_normalize(input):
 def log10_add_normalize(a, b):
 	if a == 0:
 		return log10_normalize(b)
+	if a <= -b:
+		return -log10_normalize(a)
 	return numpy.log10(1 + b/a) / numpy.log10(300)
 
-v = 50
-v_norm = log10_normalize(50)
-
-v_2 = 70
-v_2_norm = log10_normalize(v_2)
 
 def log10_diff_normalize(v_old, v_new):
 	"""计算归一值差值，适用于更新已有[原始数据]后需要更新相应的[合并数据]的情况
@@ -42,19 +39,20 @@ def log10_diff_normalize(v_old, v_new):
 	# 值不变
 	else:
 		return 0
-print('v: ', v)
-print('log10 v: ', v_norm)
-print('v_2: ', v_2)
-print('log10 v_2： ', v_2_norm)
-print('log10 v_2 - log10 v: ', v_2_norm - v_norm)
-print('log10 diff: ', log10_diff_normalize(v, v_2))
 
-v_2 = 10
-v_2_norm = log10_normalize(v_2)
+v_diff = 20
+v_before_update = 100
+v_norm_before_update = log10_normalize(100)
+v_norm_after_update = log10_normalize(2)
 
-print('v: ', v)
-print('log10 v: ', v_norm)
-print('v_2: ', v_2)
-print('log10 v_2： ', v_2_norm)
-print('log10 v_2 - log10 v: ', v_2_norm - v_norm)
-print('log10 diff: ', log10_diff_normalize(v, v_2))
+# print('log10 before add： ', v_norm_before_update)
+# print('log10 after add: ', v_norm_before_update + log10_add_normalize(v_before_update, v_diff))
+# print('log10 diff: ', log10_add_normalize(100, -98))
+# print('log10 diff + log10 before add: ', v_norm_before_update + log10_add_normalize(100, -98))
+# print('log10 expected norm: ', v_norm_after_update)
+# print('log10 diff: ', log10_add_normalize(100, -120))
+# print('log10 diff + log10 before add: ', v_norm_before_update + log10_add_normalize(100, -120))
+# print('log10 expected norm: ', 0)
+
+print(log10_normalize(20))
+
