@@ -52,10 +52,10 @@ def log10_normalize(n):
 
 
 def log10_addition_normalize(a, b):
-    """计算的log10(a + b)/log10(最大值)与log10(a)/log10(最大值)的差值
+    """计算归一值差值，适用于将新的[原始数据]合并至已有[合并数据]或创建新的[合并数据]的情况
     
+    基于公式：log(a + b) = log(a) + log(1 + b/a)
     使用log10(1 + b/a)/log10(最大值)计算差值，最大值在CONFIG.py中定义
-    基于公式：log10(a + b) = log(a) + log(1 + b/a)
     如果a值为0(即第一次插入数据的情况)，使用log10_normalize(b)计算
 
     参数：
@@ -69,3 +69,29 @@ def log10_addition_normalize(a, b):
     if a == 0:
         return log10_normalize(b)
     return numpy.log10(1 + b/a) / numpy.log10(CONFIG.LOG10_MAX)
+
+def log10_diff_normalize(v_old, v_new):
+    """计算归一值差值，适用于更新已有[原始数据]后需要更新相应的[合并数据]的情况
+    
+    基于公式：log(a + b) = log(a) + log(1 + b/a)
+    当新值小于原值时，a为新值，b为(原值-新值)，返回负的归一值差值
+    当新值大于原值时，a为原值，b为(新值-原值)，返回正的归一值差值
+    当新值等于原值时，返回0
+
+    参数：
+        v_old (int/float)：数据的原值
+        v_new (int/float)：数据的新值
+
+    返回：
+        float：计算后的归一值差值
+
+    """
+    # 新值小于原值
+    if v_new < v_old:
+        return -log10_add_normalize(v_new, v_old - v_new)
+    # 新值大于原值
+    elif v_new > v_old:
+        return log10_add_normalize(v_old, v_new - v_old)
+    # 值不变
+    else:
+        return 0
