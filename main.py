@@ -29,15 +29,12 @@ class UploadHandler(tornado.web.RequestHandler):
         [原始数据]：第三方上传数据
         [合并数据]：按分钟合并的原始数据
 
-        数据库操作(最多3次，用括号中数字标注)：
-        * 将[原始数据]储存进docs/conf.py定义的[原始数据]集合(1)
-            * 如果_id已经存在，更新[合并数据]集合中相应的数据(2)
-                * 注：覆盖已有的[原始数据]不会更改[合并数据]集合中的eid和cfg字段，
-                  如果需要更改eid和cfg字段需要新建并上传一个_id不同时间相同的[原始数据]
-                * 根据更新值计算归一值并更新[合并数据]集合中相应数据的归一值(3)
-            * 如果_id不存在，创建或更新[合并数据】集合表中相应的数据(2)
-                * 根据更新值计算归一值并更新[合并数据]集合中相应数据的归一值(3)
-    
+        数据库操作(每条数据3次)：
+            1. 将[原始数据]储存进docs/conf.py定义的[原始数据]集合
+            2. 如果_id已经存在，更新[合并数据]集合中相应的数据，
+               如果_id不存在，创建或更新[合并数据】集合表中相应的数据
+            3. 根据更新值计算归一值并更新[合并数据]集合中相应数据的归一值
+
         返回：
             code:
                 0：无异常
@@ -61,7 +58,7 @@ class UploadHandler(tornado.web.RequestHandler):
         except Exception as e:
             # 将错误信息写入输出缓冲区
             self.write({'code' : 1, 'err_msg' : '数据格式错误'})
-            # 将输出缓冲区的信息输出到scoket
+            # 将输出缓冲区的信息输出到socket
             self.flush()
             # 结束HTTP请求
             self.finish()
@@ -87,6 +84,7 @@ class UploadHandler(tornado.web.RequestHandler):
                     if valid_record:
                         # 将Record类转换成含有BSON数据类型的dict(例：将'$oid'转换成ObjectId类型)
                         record_bson = record_obj.to_bson()
+                        # 第一次数据库操作
                         # 异步插入数据，如_id已存在，覆盖原有数据并返回原有数据，否则插入的数据并返回None
                         record_before_update = await self.settings['db'][CONFIG.RAW_COLLECTION_NAME] \
                                 .find_one_and_update( \
@@ -96,22 +94,24 @@ class UploadHandler(tornado.web.RequestHandler):
                         if record_before_update:
                             res_updated_ids.append(record['_id'])
                             res_n_overwrite += 1
-                            # 异步更新[合并数据]集合
+                            # 第二，三次数据库操作
+                            # 异步更新[合并数据]集合，调整更新造成的查值
                             await core.update_min_collection(self, record_bson, record_bson_old=record_before_update)
                         else:
                             res_inserted_ids.append(record['_id'])
                             res_n_insert += 1
+                            # 第二，三次数据库操作
                             # 异步更新[合并数据]集合
                             await core.update_min_collection(self, record_bson)
                 except Exception as e:
                     if '_id' in record:
                         res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : '服务器内部错误'})
             res_code = 0 if len(res_err_ids_with_msgs) == 0 else 2
-            # HTTP响应
+            # HTTP响应内容
             res = {
                 'code' : res_code,
                 'data' : {
-                    'inserted_ids' : res_inserted_ids,
+                    'inserted_ids' : res_inserted_ids, 
                     'updated_ids' : res_updated_ids,
                     'err_ids_with_msgs' : res_err_ids_with_msgs
                 },
@@ -122,8 +122,11 @@ class UploadHandler(tornado.web.RequestHandler):
                     'n_overwrite' : res_n_overwrite
                 }
             }
+            # 将错误信息写入输出缓冲区
             self.write(res)
+            # 将输出缓冲区的信息输出到socket
             self.flush()
+            # 结束HTTP请求
             self.finish()
 
 def main():
