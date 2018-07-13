@@ -76,12 +76,12 @@ class Search:
 		# String
 		self.sort_order_by = self.get_attr('sort_order_by')
 
-		# String[]
-		self.aggr_group_type = self.get_attr('aggr_group_type')
 		# String
 		self.aggr_group_by = self.get_attr('aggr_group_by')
 		# String[]
 		self.aggr_attr_proj = self.get_attr('aggr_attr_proj')
+		# String[]
+		self.aggr_attr_group_type = self.get_attr('aggr_attr_group_type')
 
 	def get_attr(self, attr_name):
 		return self.data[attr_name] if attr_name in self.data else None
@@ -96,15 +96,35 @@ class Search:
 				result += [{('extlist.'+key) : {'$in' : self.extlist[key]}}]
 		return result
 
+	def query_v3(self):
+		result = []
+		if self.v3 and self.v3_upper:
+			for key in self.v3.keys():
+				result += [{('v3.'+key) : {'$gte' : self.v3[key], '$lte' : self.v3_upper[key]}}]
+			result = [{'$or' : result}]
+		return result
+
 	def query_or_range_match(self, attr_name, attr_upper_name):
 		result = []
 		if eval('self.'+attr_name) and eval('self.'+attr_upper_name):
 			for i, val in enumerate(eval('self.'+attr_name)):
 				result += [{attr_name : {'$gte' : val, '$lte' : eval('self.'+attr_upper_name)[i]}}]
-			result = {'$or' : result}
+			result = [{'$or' : result}]
 		return result
 
 	def query_in_array_match(self, attr_name):
 		if eval('self.'+attr_name):
 			return [{attr_name : {'$in' : eval('self.'+attr_name)}}]
 		return []
+
+a = Search({'openid' : 123,
+			'rlist' : ['a', 'b', 'c'],
+			'ugroup' : [2010, 2018],
+			'ugroup_upper' : [2012, 2018],
+			'v3' : {'test_v3' : 123},
+			'v3_upper' : {'test_v3' : 234}})
+
+print(a.query_openid())
+print(a.query_in_array_match('rlist'))
+print(a.query_or_range_match('ugroup', 'ugroup_upper'))
+print(a.query_v3())
