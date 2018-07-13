@@ -71,12 +71,7 @@ class Search:
 	def query_openid(self):
 		return [{'openid' : self.openid}]
 
-	def query_rlist(self):
-		if self.rlist:
-			return [{'rlist' : {'$in' : self.rlist}}]
-		return []
-
-	def query_insert_extlist(self, query):
+	def query_extlist(self):
 		result = []
 		if self.extlist:
 			for key in self.extlist.keys():
@@ -87,7 +82,19 @@ class Search:
 		result = []
 		if self.ugroup and self.ugroup_upper:
 			for i, val in enumerate(self.ugroup):
-				result += [{'ugroup' : {'$lte' : val, '$gte' : self.ugroup_upper[i]}}]
-				
+				result += [{'ugroup' : {'$gte' : val, '$lte' : self.ugroup_upper[i]}}]
+			result = {'$or' : result}
 		return result
 
+	def query_or_range_match(self, attr_name, attr_upper_name):
+		result = []
+		if eval('self.'+attr_name) and eval('self.'+attr_upper_name):
+			for i, val in enumerate(eval('self.'+attr_name)):
+				result += [{attr_name : {'$gte' : val, '$lte' : eval('self.'+attr_upper_name)[i]}}]
+			result = {'$or' : result}
+		return result
+
+	def query_in_array_match(self, attr_name):
+		if eval('self.'+attr_name):
+			return [{attr_name : {'$in' : eval('self.'+attr_name)}}]
+		return []
