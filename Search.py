@@ -4,6 +4,9 @@ import json
 # pip 安装模块
 import bson.json_util
 
+IN_ARRAY_MATCH_ATTR = ['rlist', 'uid', 'fid', 'eid', 'name', 'tag', 'klist', 'cfg']
+OR_RANGE_MATCH_ATTR = ['ugroup', 'exttype', 'type', 'v1', 'v2', 'date']
+
 # Search类，代表查询
 class Search:
 	def __init__(self, data):
@@ -39,10 +42,6 @@ class Search:
 		# String[]
 		self.klist = self.get_attr('klist')
 		# String[]
-		self.date = self.get_attr('date')
-		# String[]
-		self.date_upper = self.get_attr('date_upper')
-		# String[]
 		self.cfg = self.get_attr('cfg')
 		
 
@@ -69,6 +68,10 @@ class Search:
 		self.v2 = self.get_attr('v2')
 		# Number[]
 		self.v2_upper = self.get_attr('v2_upper')
+		# String[]
+		self.date = self.get_attr('date')
+		# String[]
+		self.date_upper = self.get_attr('date_upper')
 
 		# 排序所需信息
 		# Int
@@ -104,11 +107,11 @@ class Search:
 			result = [{'$or' : result}]
 		return result
 
-	def query_or_range_match(self, attr_name, attr_upper_name):
+	def query_or_range_match(self, attr_name):
 		result = []
-		if eval('self.'+attr_name) and eval('self.'+attr_upper_name):
+		if eval('self.'+attr_name) and eval('self.'+attr_name+'_upper'):
 			for i, val in enumerate(eval('self.'+attr_name)):
-				result += [{attr_name : {'$gte' : val, '$lte' : eval('self.'+attr_upper_name)[i]}}]
+				result += [{attr_name : {'$gte' : val, '$lte' : eval('self.'+attr_name+'_upper')[i]}}]
 			result = [{'$or' : result}]
 		return result
 
@@ -117,6 +120,20 @@ class Search:
 			return [{attr_name : {'$in' : eval('self.'+attr_name)}}]
 		return []
 
+	def query_match(self):
+		match = []
+		match += self.query_openid()
+		match += self.query_extlist()
+		match += self.query_v3()
+		for attr in IN_ARRAY_MATCH_ATTR:
+			match += self.query_in_array_match(attr)
+		for attr in OR_RANGE_MATCH_ATTR:
+			match += self.query_or_range_match(attr)
+		return {'$and' : match}
+
+
+
+
 a = Search({'openid' : 123,
 			'rlist' : ['a', 'b', 'c'],
 			'ugroup' : [2010, 2018],
@@ -124,7 +141,4 @@ a = Search({'openid' : 123,
 			'v3' : {'test_v3' : 123},
 			'v3_upper' : {'test_v3' : 234}})
 
-print(a.query_openid())
-print(a.query_in_array_match('rlist'))
-print(a.query_or_range_match('ugroup', 'ugroup_upper'))
-print(a.query_v3())
+print(json.dumps(a.query_match(), indent=4))
