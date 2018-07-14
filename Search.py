@@ -1,13 +1,13 @@
 # python 3.6 模块
 import json
+import sys
 
 # pip 安装模块
 import bson.json_util
+from bson.objectid import ObjectId
 
 # 本地文件，模块
 import docs.conf as CONFIG
-
-import motor.motor_tornado
 
 IN_ARRAY_MATCH_ATTR = ['rlist', 'uid', 'fid', 'eid', 'name', 'tag', 'klist', 'cfg']
 OR_RANGE_MATCH_ATTR = ['ugroup', 'exttype', 'type', 'v1', 'v2', 'date']
@@ -95,7 +95,7 @@ class Search:
 		return self.data[attr_name] if attr_name in self.data else None
 
 	def query_openid(self):
-		return [{'openid' : self.openid}]
+		return [{'openid' : ObjectId(self.openid['$oid'])}]
 
 	def query_extlist(self):
 		result = []
@@ -134,19 +134,20 @@ class Search:
 			match += self.query_in_array_match(attr)
 		for attr in OR_RANGE_MATCH_ATTR:
 			match += self.query_or_range_match(attr)
-		return [{'$and' : match}]
+		return {'$and' : match}
 
 	def query_group(self):
 		if self.aggr_group_by and self.aggr_attr_proj and self.aggr_attr_group_type:
 			result = {}
 			result['_id'] = self.aggr_group_by
 			for attr_proj in self.aggr_attr_proj:
-				group_type = {}
 				for attr_group_type in self.aggr_attr_group_type:
-					group_type['$'+attr_group_type] = '$'+attr_proj
-				result[attr_proj] = group_type
-			return [result]
-		return []
+					attr_proj_name = (attr_proj + '_' + attr_group_type).replace('.', '_')
+					result[attr_proj_name] = {('$'+attr_group_type) : ('$'+attr_proj)}
+			print(result)
+			sys.stdout.flush()
+			return result
+		return {}
 
 	def query_sort(self):
 		if self.sort_order_by and self.sort_asc:
@@ -155,35 +156,22 @@ class Search:
 			for i, attr in enumerate(self.sort_order_by):
 				result[attr] = self.sort_asc[i]
 				result_tuple += [(attr, self.sort_asc[i])]
-			return [result], result_tuple
-		return [], []
+			return result, result_tuple
+		return {}, []
 
 	def to_query(self, db):
-		group = self.query_group()
-		sort, sort_tuple = self.query_sort()
-		if group:
-			pipline = self.query_match() + group + sort
+		match_dict = self.query_match()
+		group_dict = self.query_group()
+		sort_dict, sort_tuple = self.query_sort()
+		if group_dict:
+			match = [{'$match' : match_dict}]
+			group = [{'$group' : group_dict}]
+			sort = [{'$sort' : sort_dict}]
+			pipline = match + group + sort
 			return db[CONFIG.MIN_COLLECTION_NAME].aggregate(pipline, allowDiskUse=True)
 		else:
-			if sort:
-				return db[CONFIG.MIN_COLLECTION_NAME].find(self.query_match()[0]).sort(sort_tuple)
+			if sort_dict:
+				return db[CONFIG.MIN_COLLECTION_NAME].find(self.query_match()).sort(sort_tuple)
 			else:
-				return db[CONFIG.MIN_COLLECTION_NAME].find(self.query_match()[0])
+				return db[CONFIG.MIN_COLLECTION_NAME].find(self.query_match())
 	
-
-
-db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
-
-a = Search({'openid' : 123,
-			'rlist' : ['a', 'b', 'c'],
-			'ugroup' : [2010, 2018],
-			'ugroup_upper' : [2012, 2018],
-			'v3' : {'test_v3' : 123},
-			'v3_upper' : {'test_v3' : 234},
-			'sort_order_by' : ['rlist'],
-			'sort_asc' : [1],
-			'aggr_attr_proj' : ['v1', 'v3.test_v3'],
-			'aggr_group_by' : ['ugroup'],
-			'aggr_attr_group_type' : ['sum', 'min']})
-
-print(a.to_query(db))

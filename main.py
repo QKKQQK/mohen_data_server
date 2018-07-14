@@ -18,6 +18,7 @@ import numpy
 
 # 本地文件，模块
 from Record import RawRecord
+from Search import Search
 from service import core, helpers
 import docs.conf as CONFIG
 
@@ -129,6 +130,30 @@ class UploadHandler(tornado.web.RequestHandler):
             # 结束HTTP请求
             self.finish()
 
+class SearchHandler(tornado.web.RequestHandler):
+    async def post(self):
+
+        req_data = []
+        # 检测请求boby部分否存在'data'键
+        try:
+            req_data = json.loads(self.request.body)['data']
+        except Exception as e:
+            # 将错误信息写入输出缓冲区
+            self.write({'code' : 1, 'err_msg' : '数据格式错误'})
+            # 将输出缓冲区的信息输出到socket
+            self.flush()
+            # 结束HTTP请求
+            self.finish()
+
+        if req_data:
+            search = Search(req_data)
+            async for doc in search.to_query(self.settings['db']):
+                print(doc)
+            sys.stdout.flush()
+            self.finish()
+
+
+
 def main():
     """配置服务端，启用事件循环
 
@@ -139,7 +164,8 @@ def main():
     # 配置Motor异步MongoDB连接库
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
     application = tornado.web.Application([
-        (r'/data', UploadHandler)
+        (r'/data', UploadHandler),
+        (r'/search', SearchHandler)
     ], db=db)
     application.listen(CONFIG.PORT)
     # 启用非阻塞事件循环
