@@ -74,9 +74,9 @@ class Search:
 		self.date_upper = self.get_attr('date_upper')
 
 		# 排序所需信息
-		# Int
+		# Int[]
 		self.sort_asc = self.get_attr('sort_asc')
-		# String
+		# String[]
 		self.sort_order_by = self.get_attr('sort_order_by')
 
 		# String
@@ -129,7 +129,27 @@ class Search:
 			match += self.query_in_array_match(attr)
 		for attr in OR_RANGE_MATCH_ATTR:
 			match += self.query_or_range_match(attr)
-		return {'$and' : match}
+		return [{'$and' : match}]
+
+	def query_group(self):
+		if self.aggr_group_by and self.aggr_attr_proj and self.aggr_attr_group_type:
+			result = {}
+			result['_id'] = self.aggr_group_by
+			for attr_proj in self.aggr_attr_proj:
+				group_type = {}
+				for attr_group_type in self.aggr_attr_group_type:
+					group_type['$'+attr_group_type] = '$'+attr_proj
+				result[attr_proj] = group_type
+			return [result]
+
+	def query_sort(self):
+		if self.sort_order_by and self.sort_asc:
+			result = {}
+			for i, attr in enumerate(self.sort_order_by):
+				result[attr] = self.sort_asc[i]
+			return [result]
+
+	
 
 
 
@@ -139,6 +159,11 @@ a = Search({'openid' : 123,
 			'ugroup' : [2010, 2018],
 			'ugroup_upper' : [2012, 2018],
 			'v3' : {'test_v3' : 123},
-			'v3_upper' : {'test_v3' : 234}})
+			'v3_upper' : {'test_v3' : 234},
+			'aggr_group_by' : 'ugroup',
+			'aggr_attr_proj' : ['v2', 'v3', 'v2_norm'],
+			'aggr_attr_group_type' : ['sum', 'min']})
 
 print(json.dumps(a.query_match(), indent=4))
+print(a.query_sort())
+print(a.query_group())
