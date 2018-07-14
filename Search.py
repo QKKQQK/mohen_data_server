@@ -95,7 +95,7 @@ class Search:
 		return self.data[attr_name] if attr_name in self.data else None
 
 	def query_openid(self):
-		return [{'openid' : ObjectId(self.openid['$oid'])}]
+		return [{'openid' : self.openid}]
 
 	def query_extlist(self):
 		result = []
@@ -139,13 +139,11 @@ class Search:
 	def query_group(self):
 		if self.aggr_group_by and self.aggr_attr_proj and self.aggr_attr_group_type:
 			result = {}
-			result['_id'] = self.aggr_group_by
+			result['_id'] = '$' + self.aggr_group_by
 			for attr_proj in self.aggr_attr_proj:
 				for attr_group_type in self.aggr_attr_group_type:
 					attr_proj_name = (attr_proj + '_' + attr_group_type).replace('.', '_')
 					result[attr_proj_name] = {('$'+attr_group_type) : ('$'+attr_proj)}
-			print(result)
-			sys.stdout.flush()
 			return result
 		return {}
 
@@ -166,7 +164,7 @@ class Search:
 		if group_dict:
 			match = [{'$match' : match_dict}]
 			group = [{'$group' : group_dict}]
-			sort = [{'$sort' : sort_dict}]
+			sort = [{'$sort' : sort_dict}] if sort_dict else []
 			pipline = match + group + sort
 			return db[CONFIG.MIN_COLLECTION_NAME].aggregate(pipline, allowDiskUse=True)
 		else:

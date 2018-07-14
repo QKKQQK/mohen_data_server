@@ -137,7 +137,10 @@ class SearchHandler(tornado.web.RequestHandler):
         # 检测请求boby部分否存在'data'键
         try:
             req_data = json.loads(self.request.body)['data']
+            req_data = bson.json_util.loads(json.dumps(req_data))
         except Exception as e:
+            print(e)
+            sys.stdout.flush()
             # 将错误信息写入输出缓冲区
             self.write({'code' : 1, 'err_msg' : '数据格式错误'})
             # 将输出缓冲区的信息输出到socket
@@ -149,7 +152,7 @@ class SearchHandler(tornado.web.RequestHandler):
             search = Search(req_data)
             async for doc in search.to_query(self.settings['db']):
                 print(doc)
-            sys.stdout.flush()
+                sys.stdout.flush()
             self.finish()
 
 
