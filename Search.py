@@ -4,6 +4,11 @@ import json
 # pip 安装模块
 import bson.json_util
 
+# 本地文件，模块
+import docs.conf as CONFIG
+
+import motor.motor_tornado
+
 IN_ARRAY_MATCH_ATTR = ['rlist', 'uid', 'fid', 'eid', 'name', 'tag', 'klist', 'cfg']
 OR_RANGE_MATCH_ATTR = ['ugroup', 'exttype', 'type', 'v1', 'v2', 'date']
 
@@ -141,18 +146,33 @@ class Search:
 					group_type['$'+attr_group_type] = '$'+attr_proj
 				result[attr_proj] = group_type
 			return [result]
+		return []
 
 	def query_sort(self):
 		if self.sort_order_by and self.sort_asc:
 			result = {}
+			result_tuple = []
 			for i, attr in enumerate(self.sort_order_by):
 				result[attr] = self.sort_asc[i]
-			return [result]
+				result_tuple += [(attr, self.sort_asc[i])]
+			return [result], result_tuple
+		return [], []
 
+	def to_query(self, db):
+		group = self.query_group()
+		sort, sort_tuple = self.query_sort()
+		if group:
+			pipline = self.query_match() + group + sort
+			return db[CONFIG.MIN_COLLECTION_NAME].aggregate(pipline, allowDiskUse=True)
+		else:
+			if sort:
+				return db[CONFIG.MIN_COLLECTION_NAME].find(self.query_match()[0]).sort(sort_tuple)
+			else:
+				return db[CONFIG.MIN_COLLECTION_NAME].find(self.query_match()[0])
 	
 
 
-
+db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
 
 a = Search({'openid' : 123,
 			'rlist' : ['a', 'b', 'c'],
@@ -160,10 +180,10 @@ a = Search({'openid' : 123,
 			'ugroup_upper' : [2012, 2018],
 			'v3' : {'test_v3' : 123},
 			'v3_upper' : {'test_v3' : 234},
-			'aggr_group_by' : 'ugroup',
-			'aggr_attr_proj' : ['v2', 'v3', 'v2_norm'],
+			'sort_order_by' : ['rlist'],
+			'sort_asc' : [1],
+			'aggr_attr_proj' : ['v1', 'v3.test_v3'],
+			'aggr_group_by' : ['ugroup'],
 			'aggr_attr_group_type' : ['sum', 'min']})
 
-print(json.dumps(a.query_match(), indent=4))
-print(a.query_sort())
-print(a.query_group())
+print(a.to_query(db))
