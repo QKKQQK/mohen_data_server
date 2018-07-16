@@ -1,8 +1,14 @@
+# python 3.6 模块
+import uuid
+
 # pip 安装模块
 import numpy
 
 # 本地文件，模块
 import docs.conf as CONFIG
+
+def get_UUID():
+    return str(uuid.uuid1())
 
 def log10_normalize(n):
     """使用log10公式计算归一值
@@ -42,3 +48,5 @@ def log10_addition_normalize(a, b):
     if a <= -b:
         return -log10_normalize(a)
     return numpy.log10(1 + b/a) / numpy.log10(CONFIG.LOG10_MAX)
+
+print(get_UUID())

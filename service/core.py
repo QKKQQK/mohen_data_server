@@ -12,8 +12,8 @@ import pymongo
 import numpy
 
 # 本地文件，模块
-import docs.conf as CONFIG
 from service import helpers
+from docs import conf as CONFIG
 
 
 def generate_v_val_inc_query(record_bson, record_bson_old={}):

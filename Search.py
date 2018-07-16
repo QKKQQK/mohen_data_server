@@ -7,7 +7,7 @@ import bson.json_util
 from bson.objectid import ObjectId
 
 # 本地文件，模块
-import docs.conf as CONFIG
+from docs import conf as CONFIG
 
 IN_ARRAY_MATCH_ATTR = ['rlist', 'uid', 'fid', 'eid', 'name', 'tag', 'klist', 'cfg']
 OR_RANGE_MATCH_ATTR = ['ugroup', 'exttype', 'type', 'v1', 'v2', 'date']

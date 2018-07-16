@@ -20,7 +20,7 @@ import numpy
 from Record import RawRecord
 from Search import Search
 from service import core, helpers
-import docs.conf as CONFIG
+from docs import conf as CONFIG
 
 class UploadHandler(tornado.web.RequestHandler):
     
@@ -168,7 +168,8 @@ def main():
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
     application = tornado.web.Application([
         (r'/data', UploadHandler),
-        (r'/search', SearchHandler)
+        (r'/search', SearchHandler),
+        (r'/file/(.*)', tornado.web.StaticFileHandler, {"path": os.path.join('files')})
     ], db=db)
     application.listen(CONFIG.PORT)
     # 启用非阻塞事件循环
