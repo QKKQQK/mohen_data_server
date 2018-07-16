@@ -169,7 +169,7 @@ def main():
     application = tornado.web.Application([
         (r'/data', UploadHandler),
         (r'/search', SearchHandler),
-        (r'/file/(.*)', tornado.web.StaticFileHandler, {"path": os.path.join('files')})
+        (r'/file/(.*)', tornado.web.StaticFileHandler, {"path" : './files'})
     ], db=db)
     application.listen(CONFIG.PORT)
     # 启用非阻塞事件循环
