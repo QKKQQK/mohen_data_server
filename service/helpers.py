@@ -48,5 +48,3 @@ def log10_addition_normalize(a, b):
     if a <= -b:
         return -log10_normalize(a)
     return numpy.log10(1 + b/a) / numpy.log10(CONFIG.LOG10_MAX)
-
-print(get_UUID())

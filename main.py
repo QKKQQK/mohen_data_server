@@ -4,6 +4,7 @@ import string
 import ast
 import datetime
 import sys
+import getopt
 import json
 
 # pip 安装模块
@@ -149,15 +150,34 @@ class SearchHandler(tornado.web.RequestHandler):
             self.finish()
 
         if req_data:
-            search = Search(req_data)
-            async for doc in search.to_query(self.settings['db']):
+            # MotorCursor，这一步不进行I/O
+            cursor = Search(req_data).to_query(self.settings['db'])
+            result = []
+            # to_list()每次缓冲length条文档，执行I/O
+            for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
                 print(doc)
                 sys.stdout.flush()
             self.finish()
 
-
+def usage():
+    print('main.py -p <port>')
 
 def main():
+    application_port = CONFIG.PORT
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'p:', ['port='])
+        for opt, arg in opts:
+            if opt in ("-p", "--port"):
+                application_port = int(arg)
+            else:
+                pass
+    except getopt.GetoptError as err:
+        print('Args Error: ', err)
+        sys.stdout.flush()
+        usage()
+        sys.exit()
+
+    
     """配置服务端，启用事件循环
 
     创建Tornado实例，配置Motor异步MongoDB连接库，HTTP请求路由，
@@ -169,9 +189,11 @@ def main():
     application = tornado.web.Application([
         (r'/data', UploadHandler),
         (r'/search', SearchHandler),
-        (r'/file/(.*)', tornado.web.StaticFileHandler, {"path" : './files'})
+        (r'/files/(.*)', tornado.web.StaticFileHandler, {"path" : './files'})
     ], db=db)
-    application.listen(CONFIG.PORT)
+    application.listen(application_port)
+    print('Application running on port: ', application_port)
+    sys.stdout.flush()
     # 启用非阻塞事件循环
     tornado.ioloop.IOLoop.current().start()
 

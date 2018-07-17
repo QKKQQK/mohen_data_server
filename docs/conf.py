@@ -21,3 +21,7 @@ GET_LIMIT = 1000
 
 # 归一化Log10最大值参数
 LOG10_MAX = 300.0
+
+# 查询时，每次I/O缓存文档条数
+TO_LIST_BUFFER_LENGTH = 100
+
