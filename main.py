@@ -160,21 +160,41 @@ class SearchHandler(tornado.web.RequestHandler):
             self.finish()
 
 def usage():
-    print('main.py -p <port>')
+    print('Usage: main.py -v <version> [-p <port>] [-f]')
 
 def main():
     application_port = CONFIG.PORT
+    application_version = None
+    application_force_update = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'p:', ['port='])
+        opts, args = getopt.getopt(sys.argv[1:], 'p:v:f', ['port=', 'version=', 'force'])
         for opt, arg in opts:
             if opt in ("-p", "--port"):
                 application_port = int(arg)
+            elif opt in ("-v", "--version"):
+                application_version = float(arg)
+                if application_version not in CONFIG.VERSION_LIST:
+                    raise ValueError("输入的版本号不存在")
+            elif opt in ("-f", "--force"):
+                application_force_update = True
             else:
                 pass
+        if not application_version:
+            print("请输入服务端版本号")
+            usage()
+            sys.exit()
+        if application_force_update:
+            # TODO: 锁表，更新所有数据
+            print("即将更新所有数据至 v", application_version, " 版本")
+            pass
+    # 参数错误
     except getopt.GetoptError as err:
-        print('Args Error: ', err)
-        sys.stdout.flush()
+        print("参数错误: ", err)
         usage()
+        sys.exit()
+    # 输入的版本号不存在
+    except ValueError as err:
+        print(err)
         sys.exit()
 
     
@@ -190,7 +210,7 @@ def main():
         (r'/data', UploadHandler),
         (r'/search', SearchHandler),
         (r'/files/(.*)', tornado.web.StaticFileHandler, {"path" : './files'})
-    ], db=db)
+    ], db=db,version=application_version)
     application.listen(application_port)
     print('Application running on port: ', application_port)
     sys.stdout.flush()

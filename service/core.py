@@ -95,7 +95,8 @@ async def update_min_collection(handler, record_bson, record_bson_old={}):
                 }, \
                 {'$set' : {'eid' : record_bson['eid'], \
                            'cfg' : record_bson['cfg'], \
-                           'utc_date' : datetime_begin
+                           'utc_date' : datetime_begin, \
+                           'version' : handler.settings['version']
                 }, \
                 '$inc' : inc_val \
                 # 找不到符合条件的[合并数据]时，将创建新数据
