@@ -5,12 +5,12 @@ import uuid
 import numpy
 
 # 本地文件，模块
-import docs.conf as CONFIG
+from docs import conf as CONFIG
 
 def get_UUID():
     return str(uuid.uuid1())
 
-def log10_normalize(n):
+def log10_normalize(n, version):
     """使用log10公式计算归一值
 
     使用log10(n)/log10(最大值)计算n的归一值，最大值在CONFIG.py中定义
@@ -24,11 +24,10 @@ def log10_normalize(n):
     """
     if n <= 1:
         return 0.0
-    norm = numpy.log10(n) / numpy.log10(CONFIG.LOG10_MAX)
+    norm = numpy.log10(n) / numpy.log10(CONFIG.LOG10_MAX[str(version)])
     return norm
 
-
-def log10_addition_normalize(a, b):
+def log10_addition_normalize(a, b, version):
     """计算归一值差值，适用于将新的[原始数据]合并至已有[合并数据]或创建新的[合并数据]的情况
     
     基于公式：log(a + b) = log(a) + log(1 + b/a)
@@ -44,7 +43,7 @@ def log10_addition_normalize(a, b):
 
     """
     if a == 0:
-        return log10_normalize(b)
+        return log10_normalize(b, version)
     if a <= -b:
-        return -log10_normalize(a)
-    return numpy.log10(1 + b/a) / numpy.log10(CONFIG.LOG10_MAX)
+        return -log10_normalize(a, version)
+    return numpy.log10(1 + b/a) / numpy.log10(CONFIG.LOG10_MAX[str(version)])

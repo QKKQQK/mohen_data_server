@@ -98,13 +98,13 @@ class UploadHandler(tornado.web.RequestHandler):
                             res_n_overwrite += 1
                             # 第二，三次数据库操作
                             # 异步更新[合并数据]集合，调整更新造成的查值
-                            await core.update_min_collection(self, record_bson, record_bson_old=record_before_update)
+                            await core.update_combined_collection(self, record_bson, record_bson_old=record_before_update)
                         else:
                             res_inserted_ids.append(record['_id'])
                             res_n_insert += 1
                             # 第二，三次数据库操作
                             # 异步更新[合并数据]集合
-                            await core.update_min_collection(self, record_bson)
+                            await core.update_combined_collection(self, record_bson)
                 except Exception as e:
                     if '_id' in record:
                         res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : '服务器内部错误'})
@@ -160,9 +160,20 @@ class SearchHandler(tornado.web.RequestHandler):
             self.finish()
 
 def usage():
+    """Usage信息
+
+    打印Usage信息，-v 版本(如：1.0，float格式)，-p：端口，
+    -f：强制覆盖归一值(更新版本LOG10_MAX值时)
+    """
     print('Usage: main.py -v <version> [-p <port>] [-f]')
 
 def main():
+    """配置服务端，启用事件循环
+
+    创建Tornado实例，配置Motor异步MongoDB连接库，HTTP请求路由，
+    设置端口，启用事件循环
+
+    """
     application_port = CONFIG.PORT
     application_version = None
     application_force_update = False
@@ -197,13 +208,6 @@ def main():
         print(err)
         sys.exit()
 
-    
-    """配置服务端，启用事件循环
-
-    创建Tornado实例，配置Motor异步MongoDB连接库，HTTP请求路由，
-    设置端口，启用事件循环
-
-    """
     # 配置Motor异步MongoDB连接库
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
     application = tornado.web.Application([

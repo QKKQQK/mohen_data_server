@@ -117,15 +117,16 @@ async def update_min_collection_norm_val(handler, new_record, inc):
         inc (dict)：[合并数据]数据更新后与更行前的差值，用于计算归一值
 
     """
+    version = handler.settings['version']
     inc_params = {}
     # 如更新前归一值为0，计算v1, v2归一值，否则计算v1，v2归一值增值
-    inc_params['v1_norm'] = helpers.log10_addition_normalize(new_record['v1'] - inc['v1'], inc['v1'])
-    inc_params['v2_norm'] = helpers.log10_addition_normalize(new_record['v2'] - inc['v2'], inc['v2'])
+    inc_params['v1_norm'] = helpers.log10_addition_normalize(new_record['v1'] - inc['v1'], inc['v1'], version)
+    inc_params['v2_norm'] = helpers.log10_addition_normalize(new_record['v2'] - inc['v2'], inc['v2'], version)
     for key in new_record['v3'].keys():
         if key in inc['v3']:
             # 修改v3归一值/归一值增值格式
             inc_params['v3_norm.'+str(key)] = helpers.log10_addition_normalize( \
-                    new_record['v3'][key] - inc['v3'][key], inc['v3'][key])
+                    new_record['v3'][key] - inc['v3'][key], inc['v3'][key], version)
     # 第三次数据库操作
     # 更新归一值
     after_update_data = await handler.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
