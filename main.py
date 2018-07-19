@@ -6,6 +6,7 @@ import datetime
 import sys
 import getopt
 import json
+import time
 
 # pip 安装模块
 import tornado.ioloop
@@ -159,6 +160,14 @@ class SearchHandler(tornado.web.RequestHandler):
                 sys.stdout.flush()
             self.finish()
 
+class VersionUpdateHandler(tornado.web.RequestHandler):
+    def post(self):
+        self.write({'code' : 3, 'err_msg' : '数据维护中'})
+        # 将输出缓冲区的信息输出到socket
+        self.flush()
+        # 结束HTTP请求
+        self.finish()
+
 def usage():
     """Usage信息
 
@@ -194,10 +203,6 @@ def main():
             print("请输入服务端版本号")
             usage()
             sys.exit()
-        if application_force_update:
-            # TODO: 锁表，更新所有数据
-            print("即将更新所有数据至 v", application_version, " 版本")
-            pass
     # 参数错误
     except getopt.GetoptError as err:
         print("参数错误: ", err)
@@ -207,19 +212,29 @@ def main():
     except ValueError as err:
         print(err)
         sys.exit()
-
     # 配置Motor异步MongoDB连接库
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
-    application = tornado.web.Application([
-        (r'/data', UploadHandler),
-        (r'/search', SearchHandler),
-        (r'/files/(.*)', tornado.web.StaticFileHandler, {"path" : './files'})
-    ], db=db,version=application_version)
+    application = tornado.web.Application([(r'/data', UploadHandler),
+                        (r'/search', SearchHandler),
+                        (r'/files/(.*)', tornado.web.StaticFileHandler, {"path" : './files'})], \
+                        db=db, version=application_version)
     application.listen(application_port)
+    app_ioloop = tornado.ioloop.IOLoop.current()
+    if application_force_update:
+        app_ioloop.run_sync(lambda : core.update_norm_to_version(db, application_version))
     print('Application running on port: ', application_port)
     sys.stdout.flush()
     # 启用非阻塞事件循环
-    tornado.ioloop.IOLoop.current().start()
+    app_ioloop.start()
+    
+def test(db, version):
+    result = None
+    for _ in range(30000):
+        result = db[CONFIG.RAW_COLLECTION_NAME].find( \
+                                    {'_id' : bson.objectid.ObjectId("5b360148e2c3804470000010")}).to_list(length=100)
+    print('Update complete')
+    sys.stdout.flush()
+    return result
 
 if __name__ == "__main__":
     main()

@@ -15,7 +15,6 @@ import numpy
 from service import helpers
 from docs import conf as CONFIG
 
-
 def generate_v_val_inc_query(record_bson, record_bson_old={}):
     """生成符合find_one_and_update中$inc要求格式的v1，v2，v3值
 
@@ -47,7 +46,7 @@ def generate_v_val_inc_query(record_bson, record_bson_old={}):
                 result_dict['v3'][key] = result[''.join(['v3.', key])]
     return result, result_dict
 
-async def update_min_collection(handler, record_bson, record_bson_old={}):
+async def update_combined_collection(handler, record_bson, record_bson_old={}):
     """更新[合并数据]的v1, v2, v3数值，将相似的[原始数据]合并至同一分钟级
     
     根据[原始数据]原值与新值生成符合$inc格式的v1，v2，v3增值dict
@@ -75,7 +74,7 @@ async def update_min_collection(handler, record_bson, record_bson_old={}):
         inc_val, inc_val_dict = generate_v_val_inc_query(record_bson)
     # 第二次数据库操作
     # 根据条件寻找符合条件的[合并数据]并更新，可以根据情况增减条件(会影响[合并数据]集合大小)
-    after_update_data = await handler.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
+    after_update_data = await handler.settings['db'][CONFIG.COMBINED_COLLECTION_NAME] \
             .find_one_and_update( \
                 {'pid' : record_bson['pid'], \
                 'name' : record_bson['name'], \
@@ -103,9 +102,9 @@ async def update_min_collection(handler, record_bson, record_bson_old={}):
                 }, upsert=True, \
                 # 返回更新后的新值
                 return_document=pymongo.ReturnDocument.AFTER)
-    await update_min_collection_norm_val(handler, after_update_data, inc_val_dict)
+    await update_combined_collection_norm_val(handler, after_update_data, inc_val_dict)
 
-async def update_min_collection_norm_val(handler, new_record, inc):
+async def update_combined_collection_norm_val(handler, new_record, inc):
     """更新[合并数据]的归一值
     
     根据[合并数据]原值与新值生成符合$inc格式的归一值增值dict
@@ -129,9 +128,28 @@ async def update_min_collection_norm_val(handler, new_record, inc):
                     new_record['v3'][key] - inc['v3'][key], inc['v3'][key], version)
     # 第三次数据库操作
     # 更新归一值
-    after_update_data = await handler.settings['db'][CONFIG.MIN_COLLECTION_NAME] \
+    after_update_data = await handler.settings['db'][CONFIG.COMBINED_COLLECTION_NAME] \
             .find_one_and_update(
                 {'_id' : new_record['_id']},
                 {'$inc' : inc_params}, upsert=True)
 
-
+async def update_norm_to_version(db, version):
+    print('Updating...')
+    sys.stdout.flush()
+    cursor = db[CONFIG.COMBINED_COLLECTION_NAME].find({'version' : {'$ne' : version}})
+    count = 0
+    async for doc in cursor:
+        set_params = {}
+        set_params['version'] = version
+        set_params['v1_norm'] = helpers.log10_normalize(doc['v1'], version)
+        set_params['v2_norm'] = helpers.log10_normalize(doc['v2'], version)
+        for key in doc['v3'].keys():
+            # 修改v3归一值/归一值增值格式
+            set_params['v3_norm.'+str(key)] = helpers.log10_normalize( \
+                    doc['v3'][key], version)
+        db[CONFIG.COMBINED_COLLECTION_NAME].update_one({'_id' : doc['_id']}, \
+                {'$set' : set_params})
+        count += 1
+    print('Update complete,', count, 'documents updated...')
+    sys.stdout.flush()
+    

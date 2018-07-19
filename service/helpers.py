@@ -1,5 +1,6 @@
 # python 3.6 模块
 import uuid
+import sys
 
 # pip 安装模块
 import numpy
