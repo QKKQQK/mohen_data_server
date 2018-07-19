@@ -137,7 +137,7 @@ class SearchHandler(tornado.web.RequestHandler):
 
         req_data = []
         req_metadata = []
-        # 检测请求boby部分否存在'data'与'metadata'键
+        # 检测请求body部分否存在'data'与'metadata'键
         try:
             req_data = json.loads(self.request.body)['data']
             req_data = bson.json_util.loads(json.dumps(req_data))
@@ -156,24 +156,25 @@ class SearchHandler(tornado.web.RequestHandler):
             self.finish()
 
         if req_data and req_metadata:
-            if 'file' in req_metadata and not req_metadata['file']:
-                # MotorCursor，这一步不进行I/O
-                cursor = Search(req_data).to_query(self.settings['db'])
-                result = []
-                # to_list()每次缓冲length条文档，执行I/O
-                for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
-                    result += [doc]
-                result = json.loads(bson.json_util.dumps(result))
-                res = {
-                    'code' : 0, 
-                    'data' : result,
-                    'count': {
-                        'n_record' : len(result)
+            if 'file' in req_metadata:
+                if req_metadata['file']:
+                    # MotorCursor，这一步不进行I/O
+                    cursor = Search(req_data).to_query(self.settings['db'])
+                    result = []
+                    # to_list()每次缓冲length条文档，执行I/O
+                    for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
+                        result += [doc]
+                    result = json.loads(bson.json_util.dumps(result))
+                    res = {
+                        'code' : 0, 
+                        'data' : result,
+                        'count': {
+                            'n_record' : len(result)
+                        }
                     }
-                }
-                self.write(res)
-                self.flush()
-                self.finish()
+                    self.write(res)
+                    self.flush()
+                    self.finish()
 
 class VersionUpdateHandler(tornado.web.RequestHandler):
     def post(self):
