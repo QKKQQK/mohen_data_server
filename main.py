@@ -136,33 +136,53 @@ class SearchHandler(tornado.web.RequestHandler):
     async def post(self):
 
         req_data = []
-        # 检测请求boby部分否存在'data'键
+        req_metadata = []
+        # 检测请求boby部分否存在'data'与'metadata'键
         try:
             req_data = json.loads(self.request.body)['data']
             req_data = bson.json_util.loads(json.dumps(req_data))
+            req_metadata = json.loads(self.request.body)['metadata']
+            req_metadata = bson.json_util.loads(json.dumps(req_metadata))
         except Exception as e:
-            print(e)
-            sys.stdout.flush()
+            res = {
+                'code' : 1, 
+                'err_msg' : '数据格式错误'
+            }
             # 将错误信息写入输出缓冲区
-            self.write({'code' : 1, 'err_msg' : '数据格式错误'})
+            self.write(res)
             # 将输出缓冲区的信息输出到socket
             self.flush()
             # 结束HTTP请求
             self.finish()
 
-        if req_data:
-            # MotorCursor，这一步不进行I/O
-            cursor = Search(req_data).to_query(self.settings['db'])
-            result = []
-            # to_list()每次缓冲length条文档，执行I/O
-            for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
-                print(doc)
-                sys.stdout.flush()
-            self.finish()
+        if req_data and req_metadata:
+            if 'file' in req_metadata and not req_metadata['file']:
+                # MotorCursor，这一步不进行I/O
+                cursor = Search(req_data).to_query(self.settings['db'])
+                result = []
+                # to_list()每次缓冲length条文档，执行I/O
+                for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
+                    result += [doc]
+                result = json.loads(bson.json_util.dumps(result))
+                res = {
+                    'code' : 0, 
+                    'data' : result,
+                    'count': {
+                        'n_record' : len(result)
+                    }
+                }
+                self.write(res)
+                self.flush()
+                self.finish()
 
 class VersionUpdateHandler(tornado.web.RequestHandler):
     def post(self):
-        self.write({'code' : 3, 'err_msg' : '数据维护中'})
+        res = {
+            'code' : 3, 
+            'err_msg' : '数据维护中'
+        }
+        # 将错误信息写入输出缓冲区
+        self.write(res)
         # 将输出缓冲区的信息输出到socket
         self.flush()
         # 结束HTTP请求
@@ -214,8 +234,8 @@ def main():
         sys.exit()
     # 配置Motor异步MongoDB连接库
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
-    application = tornado.web.Application([(r'/data', UploadHandler),
-                        (r'/search', SearchHandler),
+    application = tornado.web.Application([(r'/data', UploadHandler), \
+                        (r'/search', SearchHandler), \
                         (r'/files/(.*)', tornado.web.StaticFileHandler, {"path" : './files'})], \
                         db=db, version=application_version)
     application.listen(application_port)
@@ -231,7 +251,7 @@ def test(db, version):
     result = None
     for _ in range(30000):
         result = db[CONFIG.RAW_COLLECTION_NAME].find( \
-                                    {'_id' : bson.objectid.ObjectId("5b360148e2c3804470000010")}).to_list(length=100)
+                {'_id' : bson.objectid.ObjectId("5b360148e2c3804470000010")}).to_list(length=100)
     print('Update complete')
     sys.stdout.flush()
     return result

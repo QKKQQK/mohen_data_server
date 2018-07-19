@@ -166,10 +166,10 @@ class Search:
 			group = [{'$group' : group_dict}]
 			sort = [{'$sort' : sort_dict}] if sort_dict else []
 			pipline = match + group + sort
-			return db[CONFIG.MIN_COLLECTION_NAME].aggregate(pipline, allowDiskUse=True)
+			return db[CONFIG.COMBINED_COLLECTION_NAME].aggregate(pipline, allowDiskUse=True)
 		else:
 			if sort_dict:
-				return db[CONFIG.MIN_COLLECTION_NAME].find(self.query_match()).sort(sort_tuple)
+				return db[CONFIG.COMBINED_COLLECTION_NAME].find(self.query_match()).sort(sort_tuple)
 			else:
-				return db[CONFIG.MIN_COLLECTION_NAME].find(self.query_match())
+				return db[CONFIG.COMBINED_COLLECTION_NAME].find(self.query_match())
 	
