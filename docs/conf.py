@@ -1,3 +1,12 @@
+# 已知服务器版本
+VERSION_LIST = [1.0, 1.1]
+
+# 归一化Log10最大值参数
+LOG10_MAX = {
+	'1.0' : 300,
+	'1.1' : 100
+}
+
 # 服务器端口
 PORT = 8080
 
@@ -11,7 +20,7 @@ DB_NAME = 'test_report'
 # 原始数据集合名称
 RAW_COLLECTION_NAME = 'tbl_report_raw5'
 # 合并数据集合名称
-MIN_COLLECTION_NAME = 'tbl_report_min'
+COMBINED_COLLECTION_NAME = 'tbl_report_min'
 
 # 下载CSV时，每次传输 1 MB 数据
 CHUNK_SIZE = 1024 * 512
@@ -19,5 +28,6 @@ CHUNK_SIZE = 1024 * 512
 # GET /data 返回数据数量限制
 GET_LIMIT = 1000
 
-# 归一化Log10最大值参数
-LOG10_MAX = 300.0
+# 查询时，每次I/O缓存文档条数
+TO_LIST_BUFFER_LENGTH = 100
+

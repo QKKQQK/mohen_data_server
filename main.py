@@ -4,7 +4,10 @@ import string
 import ast
 import datetime
 import sys
+import getopt
 import json
+import time
+import csv
 
 # pip 安装模块
 import tornado.ioloop
@@ -18,8 +21,9 @@ import numpy
 
 # 本地文件，模块
 from Record import RawRecord
+from Search import Search
 from service import core, helpers
-import docs.conf as CONFIG
+from docs import conf as CONFIG
 
 class UploadHandler(tornado.web.RequestHandler):
     
@@ -96,13 +100,13 @@ class UploadHandler(tornado.web.RequestHandler):
                             res_n_overwrite += 1
                             # 第二，三次数据库操作
                             # 异步更新[合并数据]集合，调整更新造成的查值
-                            await core.update_min_collection(self, record_bson, record_bson_old=record_before_update)
+                            await core.update_combined_collection(self, record_bson, record_bson_old=record_before_update)
                         else:
                             res_inserted_ids.append(record['_id'])
                             res_n_insert += 1
                             # 第二，三次数据库操作
                             # 异步更新[合并数据]集合
-                            await core.update_min_collection(self, record_bson)
+                            await core.update_combined_collection(self, record_bson)
                 except Exception as e:
                     if '_id' in record:
                         res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : '服务器内部错误'})
@@ -129,6 +133,93 @@ class UploadHandler(tornado.web.RequestHandler):
             # 结束HTTP请求
             self.finish()
 
+class SearchHandler(tornado.web.RequestHandler):
+    async def post(self):
+
+        req_data = []
+        req_metadata = []
+        # 检测请求body部分否存在'data'与'metadata'键
+        try:
+            req_data = json.loads(self.request.body)['data']
+            req_data = bson.json_util.loads(json.dumps(req_data))
+            req_metadata = json.loads(self.request.body)['metadata']
+            req_metadata = bson.json_util.loads(json.dumps(req_metadata))
+        except Exception as e:
+            # HTTP响应内容
+            res = {
+                'code' : 1, 
+                'err_msg' : '数据格式错误'
+            }
+            # 将错误信息写入输出缓冲区
+            self.write(res)
+            # 将输出缓冲区的信息输出到socket
+            self.flush()
+            # 结束HTTP请求
+            self.finish()
+
+        if req_data and req_metadata:
+            if 'file' in req_metadata:
+                cursor = Search(req_data).to_query(self.settings['db'])
+                if not req_metadata['file']:
+                    # MotorCursor，这一步不进行I/O
+                    result = []
+                    # to_list()每次缓冲length条文档，执行I/O
+                    for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
+                        result += [doc]
+                    # 将BSON格式结果转换成JSON格式
+                    result = json.loads(bson.json_util.dumps(result))
+                    # HTTP响应内容
+                    res = {
+                        'code' : 0, 
+                        'data' : result,
+                        'count': {
+                            'n_record' : len(result)
+                        }
+                    }
+                    self.write(res)
+                    self.flush()
+                    self.finish()
+                else:
+                    res_uuid = helpers.get_UUID()
+                    has_result = False
+                    with open(('files/'+res_uuid+'.csv'), 'w', newline='') as f:
+                        fieldnames = []
+                        writer = None
+                        for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
+                            doc = json.loads(bson.json_util.dumps(doc))
+                            if not has_result:
+                                res = {
+                                    'code' : 0,
+                                    'data' : {
+                                        'uuid' : res_uuid
+                                    }
+                                }
+                                self.write(res)
+                                self.flush()
+                                self.finish()
+                                has_result = True
+                                fieldnames = list(doc.keys())
+                                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+                                writer.writeheader()
+                            writer.writerow(doc)            
+                    if not has_result:
+                        # HTTP响应内容
+                        res = {
+                            'code' : 5,
+                            'err_msg' : '搜索无结果'
+                        }
+                        self.write(res)
+                        self.flush()
+                        self.finish()
+
+def usage():
+    """Usage信息
+
+    打印Usage信息，-v 版本(如：1.0，float格式)，-p：端口，
+    -f：强制覆盖归一值(更新版本LOG10_MAX值时)
+    """
+    print('Usage: main.py -v <version> [-p <port>] [-f]')
+
 def main():
     """配置服务端，启用事件循环
 
@@ -136,14 +227,58 @@ def main():
     设置端口，启用事件循环
 
     """
+    application_port = CONFIG.PORT
+    application_version = None
+    application_force_update = False
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'p:v:f', ['port=', 'version=', 'force'])
+        for opt, arg in opts:
+            if opt in ("-p", "--port"):
+                application_port = int(arg)
+            elif opt in ("-v", "--version"):
+                application_version = float(arg)
+                if application_version not in CONFIG.VERSION_LIST:
+                    raise ValueError("输入的版本号不存在")
+            elif opt in ("-f", "--force"):
+                application_force_update = True
+            else:
+                pass
+        if not application_version:
+            print("请输入服务端版本号")
+            usage()
+            sys.exit()
+    # 参数错误
+    except getopt.GetoptError as err:
+        print("参数错误: ", err)
+        usage()
+        sys.exit()
+    # 输入的版本号不存在
+    except ValueError as err:
+        print(err)
+        sys.exit()
     # 配置Motor异步MongoDB连接库
     db = motor.motor_tornado.MotorClient(CONFIG.DB_HOST, CONFIG.DB_PORT)[CONFIG.DB_NAME]
-    application = tornado.web.Application([
-        (r'/data', UploadHandler)
-    ], db=db)
-    application.listen(CONFIG.PORT)
+    application = tornado.web.Application([(r'/data', UploadHandler), \
+                        (r'/search', SearchHandler), \
+                        (r'/files/(.*)', tornado.web.StaticFileHandler, {"path" : './files'})], \
+                        db=db, version=application_version)
+    application.listen(application_port)
+    app_ioloop = tornado.ioloop.IOLoop.current()
+    if application_force_update:
+        app_ioloop.run_sync(lambda : core.update_norm_to_version(db, application_version))
+    print('Application running on port: ', application_port)
+    sys.stdout.flush()
     # 启用非阻塞事件循环
-    tornado.ioloop.IOLoop.current().start()
+    app_ioloop.start()
+    
+def test(db, version):
+    result = None
+    for _ in range(30000):
+        result = db[CONFIG.RAW_COLLECTION_NAME].find( \
+                {'_id' : bson.objectid.ObjectId("5b360148e2c3804470000010")}).to_list(length=100)
+    print('Update complete')
+    sys.stdout.flush()
+    return result
 
 if __name__ == "__main__":
     main()
