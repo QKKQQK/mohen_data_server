@@ -105,8 +105,9 @@ class UploadHandler(tornado.web.RequestHandler):
                             res_inserted_ids.append(record['_id'])
                             res_n_insert += 1
                             # 第二，三次数据库操作
-                            # 异步更新[合并数据]集合
-                            await core.update_combined_collection(self, record_bson)
+                            # 当flag为1时，异步更新[合并数据]集合
+                            if record_bson['flag']:
+                                await core.update_combined_collection(self, record_bson)
                 except Exception as e:
                     if '_id' in record:
                         res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : str(e)})
