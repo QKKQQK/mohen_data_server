@@ -33,7 +33,11 @@ class RawRecord:
 		self.openid = data['openid']
 		self.v1 = data['v1']
 		self.v2 = data['v2'] if 'v2' in data else 0
-		self.v3 = data['v3'] if 'v3' in data else {}
+		if 'v3' in data and data['v3']:
+			self.v3 = data['v3']
+			self.v3['placeholder'] = 0
+		else:
+			self.v3 = {'placeholder' : 0}
 		self.cfg = data['cfg'] if 'cfg' in data else ""
 		self.utc_date = data['utc_date']
 

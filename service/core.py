@@ -33,6 +33,9 @@ def generate_v_val_inc_query(record_bson, record_bson_old={}):
     result_dict = {}
     result['v1'] = record_bson['v1'] - (record_bson_old['v1'] if record_bson_old else 0)
     result['v2'] = record_bson['v2'] - (record_bson_old['v2'] if record_bson_old else 0)
+    # # 当新值v3为空时，如果这是第一次插入record或者原有record的v3为空时，删除v3原始值{}
+    # if not record_bson['v3'] and ((not record_bson_old) or (not record_bson_old['v3'])):
+    #     del result['v3']
     result_dict['v1'] = result['v1']
     result_dict['v2'] = result['v2']
     result_dict['v3'] = {}
@@ -44,6 +47,8 @@ def generate_v_val_inc_query(record_bson, record_bson_old={}):
             if key not in record_bson['v3'].keys():
                 result[''.join(['v3.', key])] = -record_bson_old['v3'][key]
                 result_dict['v3'][key] = result[''.join(['v3.', key])]
+    print(result)
+    sys.stdout.flush()
     return result, result_dict
 
 async def update_combined_collection(handler, record_bson, record_bson_old={}):

@@ -82,7 +82,7 @@ class UploadHandler(tornado.web.RequestHandler):
                     record_obj = RawRecord(record)
                 except Exception as e:
                     # 记录格式出错的数据的_id和异常信息
-                    res_err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})
+                    res_err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '对象化失败，请检查数据格式'})
                     valid_record = False   
                 try:
                     if valid_record:
@@ -109,7 +109,7 @@ class UploadHandler(tornado.web.RequestHandler):
                             await core.update_combined_collection(self, record_bson)
                 except Exception as e:
                     if '_id' in record:
-                        res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : '服务器内部错误'})
+                        res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : str(e)})
             res_code = 0 if len(res_err_ids_with_msgs) == 0 else 2
             # HTTP响应内容
             res = {
