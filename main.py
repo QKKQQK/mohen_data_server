@@ -270,15 +270,6 @@ def main():
     sys.stdout.flush()
     # 启用非阻塞事件循环
     app_ioloop.start()
-    
-def test(db, version):
-    result = None
-    for _ in range(30000):
-        result = db[CONFIG.RAW_COLLECTION_NAME].find( \
-                {'_id' : bson.objectid.ObjectId("5b360148e2c3804470000010")}).to_list(length=100)
-    print('Update complete')
-    sys.stdout.flush()
-    return result
 
 if __name__ == "__main__":
     main()
