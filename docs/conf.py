@@ -31,3 +31,5 @@ GET_LIMIT = 1000
 # 查询时，每次I/O缓存文档条数
 TO_LIST_BUFFER_LENGTH = 100
 
+# 查询生成文件有效时长(分钟)
+FILE_TTL_MINUTE = 24 * 60

@@ -15,12 +15,6 @@ import numpy
 from service import helpers
 from docs import conf as CONFIG
 
-def cleanup_empty_combined_data(db):
-    pass
-
-def remove_old_file():
-    pass
-
 def should_delete(record_bson):
     delete = record_bson['v1'] == 0 and record_bson['v2'] == 0
     for key in record_bson['v3'].keys():
@@ -205,7 +199,7 @@ async def update_norm_to_version(db, version):
     sys.stdout.flush()
     cursor = db[CONFIG.COMBINED_COLLECTION_NAME].find({'version' : {'$ne' : version}})
     count = 0
-    async for doc in cursor:
+    async for doc in cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
         set_params = {}
         set_params['version'] = version
         set_params['v1_norm'] = helpers.log10_normalize(doc['v1'], version)
@@ -220,3 +214,5 @@ async def update_norm_to_version(db, version):
     print('Update complete,', count, 'documents updated...')
     sys.stdout.flush()
     
+def remove_old_file():
+    pass

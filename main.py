@@ -231,10 +231,9 @@ def main():
     application_port = CONFIG.PORT
     application_version = None
     application_force_update = False
-    application_cleanup_empty_combined_data = False
     application_remove_old_file = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'p:v:fcr', ['port=', 'version=', 'force', 'cleanup', 'remove'])
+        opts, args = getopt.getopt(sys.argv[1:], 'p:v:fr', ['port=', 'version=', 'force', 'remove'])
         for opt, arg in opts:
             if opt in ("-p", "--port"):
                 application_port = int(arg)
@@ -244,8 +243,6 @@ def main():
                     raise ValueError("输入的版本号不存在")
             elif opt in ("-f", "--force"):
                 application_force_update = True
-            elif opt in ("-c", "--cleanup"):
-                application_cleanup_empty_combined_data = True
             elif opt in ("-r", "--remove"):
                 application_remove_old_file = True
             else:
@@ -274,24 +271,13 @@ def main():
 
     if application_force_update:
         app_ioloop.run_sync(lambda : core.update_norm_to_version(db, application_version))
-    if application_cleanup_empty_combined_data:
-        app_ioloop.run_sync(lambda : core.cleanup_empty_combined_data(db))
     if application_remove_old_file:
-        app_ioloop.run_sync(lambda : core.remove_old_file())
+        app_ioloop.run_sync(core.remove_old_file)
 
     print('Application running on port: ', application_port)
     sys.stdout.flush()
     # 启用非阻塞事件循环
     app_ioloop.start()
-    
-def test(db, version):
-    result = None
-    for _ in range(30000):
-        result = db[CONFIG.RAW_COLLECTION_NAME].find( \
-                {'_id' : bson.objectid.ObjectId("5b360148e2c3804470000010")}).to_list(length=100)
-    print('Update complete')
-    sys.stdout.flush()
-    return result
 
 if __name__ == "__main__":
     main()

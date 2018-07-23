@@ -134,6 +134,7 @@ class Search:
 			match += self.query_in_array_match(attr)
 		for attr in OR_RANGE_MATCH_ATTR:
 			match += self.query_or_range_match(attr)
+		match += [{'v1' : {'$gt' : 0}}]
 		return {'$and' : match}
 
 	def query_group(self):
@@ -169,7 +170,7 @@ class Search:
 			return db[CONFIG.COMBINED_COLLECTION_NAME].aggregate(pipline, allowDiskUse=True)
 		else:
 			if sort_dict:
-				return db[CONFIG.COMBINED_COLLECTION_NAME].find(self.query_match()).sort(sort_tuple)
+				return db[CONFIG.COMBINED_COLLECTION_NAME].find(match_dict).sort(sort_tuple)
 			else:
-				return db[CONFIG.COMBINED_COLLECTION_NAME].find(self.query_match())
+				return db[CONFIG.COMBINED_COLLECTION_NAME].find(match_dict)
 	
