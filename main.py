@@ -231,9 +231,10 @@ def main():
     application_port = CONFIG.PORT
     application_version = None
     application_force_update = False
+    application_clean_up_empty_combined_data = False
     application_remove_old_file = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'p:v:fr', ['port=', 'version=', 'force', 'remove'])
+        opts, args = getopt.getopt(sys.argv[1:], 'p:v:fcr', ['port=', 'version=', 'force', 'cleanup', 'remove'])
         for opt, arg in opts:
             if opt in ("-p", "--port"):
                 application_port = int(arg)
@@ -243,6 +244,8 @@ def main():
                     raise ValueError("输入的版本号不存在")
             elif opt in ("-f", "--force"):
                 application_force_update = True
+            elif opt in ("-c", "--cleanup"):
+                application_clean_up_empty_combined_data = True
             elif opt in ("-r", "--remove"):
                 application_remove_old_file = True
             else:
@@ -271,6 +274,10 @@ def main():
 
     if application_force_update:
         app_ioloop.run_sync(lambda : core.update_norm_to_version(db, application_version))
+    else:
+        app_ioloop.run_sync(lambda : core.version_check(db, application_version))
+    if application_clean_up_empty_combined_data:
+        app_ioloop.run_sync(lambda : core.clean_up_empty_combined_data(db))
     if application_remove_old_file:
         app_ioloop.run_sync(core.remove_old_file)
 

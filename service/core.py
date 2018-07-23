@@ -15,12 +15,6 @@ import numpy
 from service import helpers
 from docs import conf as CONFIG
 
-def should_delete(record_bson):
-    delete = record_bson['v1'] == 0 and record_bson['v2'] == 0
-    for key in record_bson['v3'].keys():
-        delete = delete and record_bson['v3'][key] == 0
-    return delete
-
 def get_time_range(record_bson):
     begin = datetime.datetime(year=record_bson['utc_date'].year, \
                               month=record_bson['utc_date'].month, \
@@ -194,12 +188,34 @@ async def update_combined_collection_norm_val(handler, new_record, inc):
                 {'_id' : new_record['_id']},
                 {'$inc' : inc_params}, upsert=True)
 
+async def sample_for_version(db):
+    doc = await db[CONFIG.COMBINED_COLLECTION_NAME].find_one({'flag' : 1})
+    return doc['version']
+
+async def version_check(db, input_version):
+    current_version = await sample_for_version(db)
+    if current_version != input_version:
+        res = input("Input version v"+str(input_version)+" does not match with current version v"+str(current_version)+", proceed? [Y/N] ")
+        if res == 'Y' or res == 'y':
+            pass
+        else:
+            sys.exit()
+    else:
+        print("Application version v" + str(current_version))
+        sys.stdout.flush()
+
 async def update_norm_to_version(db, version):
-    print('Updating...')
+    current_version = await sample_for_version(db)
+    res = input("Update data from version v" + str(current_version) + " to version v" + str(version) + ", proceed? [Y/N] ")
+    if res == 'Y' or res == 'y':
+        pass
+    else:
+        sys.exit()
+    print("Updating data to version v" + str(version) + " ...")
     sys.stdout.flush()
     cursor = db[CONFIG.COMBINED_COLLECTION_NAME].find({'version' : {'$ne' : version}})
     count = 0
-    async for doc in cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
+    for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
         set_params = {}
         set_params['version'] = version
         set_params['v1_norm'] = helpers.log10_normalize(doc['v1'], version)
@@ -211,7 +227,19 @@ async def update_norm_to_version(db, version):
         db[CONFIG.COMBINED_COLLECTION_NAME].update_one({'_id' : doc['_id']}, \
                 {'$set' : set_params})
         count += 1
-    print('Update complete,', count, 'documents updated...')
+    print('Update complete,', count, 'documents updated')
+    print("Application version v" + str(version))
+    sys.stdout.flush()
+
+async def clean_up_empty_combined_data(db):
+    print('Cleaning up empty combined data...')
+    sys.stdout.flush()
+    cursor = db[CONFIG.COMBINED_COLLECTION_NAME].find({'v1' : {'$eq' : 0}, 'flag' : 1})
+    count = 0
+    for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
+        await db[CONFIG.COMBINED_COLLECTION_NAME].update_one({'_id': doc['_id']}, {'$set': {'flag': 0}})
+        count += 1
+    print('Cleanup complete,', count, 'documents deleted')
     sys.stdout.flush()
     
 def remove_old_file():
