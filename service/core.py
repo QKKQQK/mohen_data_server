@@ -15,6 +15,18 @@ import numpy
 from service import helpers
 from docs import conf as CONFIG
 
+def cleanup_empty_combined_data(db):
+    pass
+
+def remove_old_file():
+    pass
+
+def should_delete(record_bson):
+    delete = record_bson['v1'] == 0 and record_bson['v2'] == 0
+    for key in record_bson['v3'].keys():
+        delete = delete and record_bson['v3'][key] == 0
+    return delete
+
 def get_time_range(record_bson):
     begin = datetime.datetime(year=record_bson['utc_date'].year, \
                               month=record_bson['utc_date'].month, \
@@ -128,7 +140,7 @@ async def update_combined_collection(handler, record_bson, record_bson_old={}):
 async def update_combined_collection_val(handler, record_bson, inc, inc_dict):
     # 计算合并时间范围下限
     datetime_begin, datetime_end = get_time_range(record_bson)
-    
+
     after_update_data = await handler.settings['db'][CONFIG.COMBINED_COLLECTION_NAME] \
             .find_one_and_update( \
                 {'pid' : record_bson['pid'], \

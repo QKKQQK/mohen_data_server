@@ -219,7 +219,7 @@ def usage():
     打印Usage信息，-v 版本(如：1.0，float格式)，-p：端口，
     -f：强制覆盖归一值(更新版本LOG10_MAX值时)
     """
-    print('Usage: main.py -v <version> [-p <port>] [-f]')
+    print('Usage: main.py -v <version> [-p <port>] [-f] [-c]')
 
 def main():
     """配置服务端，启用事件循环
@@ -231,8 +231,10 @@ def main():
     application_port = CONFIG.PORT
     application_version = None
     application_force_update = False
+    application_cleanup_empty_combined_data = False
+    application_remove_old_file = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'p:v:f', ['port=', 'version=', 'force'])
+        opts, args = getopt.getopt(sys.argv[1:], 'p:v:fcr', ['port=', 'version=', 'force', 'cleanup', 'remove'])
         for opt, arg in opts:
             if opt in ("-p", "--port"):
                 application_port = int(arg)
@@ -242,6 +244,10 @@ def main():
                     raise ValueError("输入的版本号不存在")
             elif opt in ("-f", "--force"):
                 application_force_update = True
+            elif opt in ("-c", "--cleanup"):
+                application_cleanup_empty_combined_data = True
+            elif opt in ("-r", "--remove"):
+                application_remove_old_file = True
             else:
                 pass
         if not application_version:
@@ -265,8 +271,14 @@ def main():
                         db=db, version=application_version)
     application.listen(application_port)
     app_ioloop = tornado.ioloop.IOLoop.current()
+
     if application_force_update:
         app_ioloop.run_sync(lambda : core.update_norm_to_version(db, application_version))
+    if application_cleanup_empty_combined_data:
+        app_ioloop.run_sync(lambda : core.cleanup_empty_combined_data(db))
+    if application_remove_old_file:
+        app_ioloop.run_sync(lambda : core.remove_old_file())
+
     print('Application running on port: ', application_port)
     sys.stdout.flush()
     # 启用非阻塞事件循环
