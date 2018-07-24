@@ -150,8 +150,6 @@ class Search:
             match += self.query_or_range_match(attr)
         match += [{'v1' : {'$gt' : 0}}]
         match = {'$and' : match}
-        print(match)
-        sys.stdout.flush()
         return match
 
     def query_group(self):

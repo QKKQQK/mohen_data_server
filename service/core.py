@@ -35,8 +35,6 @@ def should_combine(record_bson, record_bson_old):
         record_bson_old_begin, record_bson_old_end = get_time_range(record_bson_old)
         combine = combine and (record_bson_begin == record_bson_old_begin) and (record_bson_end == record_bson_old_end)
     except Exception as e:
-        print(e)
-        sys.stdout.flush()
         combine = False
     return combine
 
@@ -75,8 +73,6 @@ def generate_v_val_inc_query(record_bson, record_bson_old={}, sign=1):
             if key not in record_bson['v3'].keys():
                 result['v3.'+key] = -record_bson_old['v3'][key]
                 result_dict['v3'][key] = result['v3.'+key]
-    print(result)
-    sys.stdout.flush()
     return result, result_dict
 
 async def update_combined_collection(handler, record_bson, record_bson_old={}):
