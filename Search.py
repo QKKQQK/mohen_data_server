@@ -5,6 +5,7 @@ import sys
 # pip 安装模块
 import bson.json_util
 from bson.objectid import ObjectId
+import numpy as np
 
 # 本地文件，模块
 from docs import conf as CONFIG
@@ -191,3 +192,76 @@ class Search:
             else:
                 return db[CONFIG.COMBINED_COLLECTION_NAME].find(match_dict)
     
+class TreeNode:
+	def __init__(self, data):
+		self.name = data['name']
+		self.isleaf = data['isleaf']
+		self.data = []
+		self.children = []
+
+	def get_name(self):
+		return self.name
+
+	def add_child(self, child):
+		self.children.append(child)
+
+	def is_leaf(self):
+		return self.isleaf
+
+	def add_data(self, data):
+		self.data += [data]
+
+	# def get_data(self, attr_proj, operations):
+	# 	result = {}
+	# 	if self.isleaf:
+	# 		for attr in attr_proj:
+	# 			attr_summary = {}
+	# 			for opr in operations:
+	# 				if opr == 'max'：
+	# 					attr_summary['max'] = max(self.data[attr])
+	# 				elif opr == 'min':
+	# 					attr_summary['min'] = min(self.data[attr])
+	# 				elif opr == 'avg':
+	# 					attr_summary['avg'] = sum(self.data[attr]) / len(self.data[attr])
+	# 				elif opr == 'sum':
+	# 					attr_summary['sum'] = sum(self.data[attr])
+	# 				else:
+	# 					pass
+	# 			attr_summary['count'] = len(self.data[attr])
+	# 			result[attr] = attr_summary
+	# 	else:
+	# 		children_data = []
+	# 		for child in self.children:
+	# 			children_data += [child.get_data(attr_proj, operations)]
+	# 		for attr in attr_proj:
+	# 			attr_summary = {}
+	# 			for opr in operations:
+	# 				children_data_count = 0
+	# 				for data in children_data:
+	# 					children_data_count += data[attr]['count']
+	# 				if opr == 'max'：
+	# 					children_data_max = []
+	# 					for data in children_data:
+	# 						children_data_max += [data[attr]['max']]
+	# 					attr_summary['max'] = max(children_data_max)
+	# 				elif opr == 'min':
+	# 					children_data_min = []
+	# 					for data in children_data:
+	# 						children_data_min += [data[attr]['min']]
+	# 					attr_summary['min'] = min(children_data_min)
+	# 				elif opr == 'avg':
+	# 					children_data_sum = 0
+	# 					for data in children_data:
+	# 						children_data_sum += data[attr]['sum']
+	# 					attr_summary['avg'] = children_data_sum / children_data_count
+	# 				elif opr == 'sum':
+	# 					children_data_sum = 0
+	# 					for data in children_data:
+	# 						children_data_sum += data[attr]['sum']
+	# 					attr_summary['sum'] = children_data_sum
+	# 				else:
+	# 					pass
+	# 			attr_summary['count'] = children_data_count
+	# 			result[attr] = attr_summary
+	# 	return result
+
