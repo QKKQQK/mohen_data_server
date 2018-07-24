@@ -82,7 +82,7 @@ class UploadHandler(tornado.web.RequestHandler):
                     record_obj = RawRecord(record)
                 except Exception as e:
                     # 记录格式出错的数据的_id和异常信息
-                    res_err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '数据格式错误'})
+                    res_err_ids_with_msgs.append({'_id' : record['_id'] if '_id' in record else 'N/A', 'err_msg' : '对象化失败，请检查数据格式'})
                     valid_record = False   
                 try:
                     if valid_record:
@@ -105,11 +105,12 @@ class UploadHandler(tornado.web.RequestHandler):
                             res_inserted_ids.append(record['_id'])
                             res_n_insert += 1
                             # 第二，三次数据库操作
-                            # 异步更新[合并数据]集合
-                            await core.update_combined_collection(self, record_bson)
+                            # 当flag为1时，异步更新[合并数据]集合
+                            if record_bson['flag']:
+                                await core.update_combined_collection(self, record_bson)
                 except Exception as e:
                     if '_id' in record:
-                        res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : '服务器内部错误'})
+                        res_err_ids_with_msgs.append({'_id' : record['_id'], 'err_msg' : str(e)})
             res_code = 0 if len(res_err_ids_with_msgs) == 0 else 2
             # HTTP响应内容
             res = {
@@ -135,7 +136,6 @@ class UploadHandler(tornado.web.RequestHandler):
 
 class SearchHandler(tornado.web.RequestHandler):
     async def post(self):
-
         req_data = []
         req_metadata = []
         # 检测请求body部分否存在'data'与'metadata'键
@@ -212,13 +212,39 @@ class SearchHandler(tornado.web.RequestHandler):
                         self.flush()
                         self.finish()
 
+def periodic_remove_old_file():
+    def wrapper():
+        remove_old_file()
+        periodic_remove_old_file()
+    scheduled_remove_old_file_timedelta = datetime.timedelta(hours=CONFIG.FILE_REMOVE_FREQUENCY_HOUR, \
+            minutes=CONFIG.FILE_REMOVE_FREQUENCY_MINUTE, seconds=CONFIG.FILE_REMOVE_FREQUENCY_SECOND)
+    tornado.ioloop.IOLoop.current().add_timeout(scheduled_remove_old_file_timedelta, wrapper)
+
+def remove_old_file():
+    files_dir_path = os.path.join(os.path.dirname(__file__), 'files/')
+    file_list = os.listdir(files_dir_path)
+    has_print_msg = False
+    for file in file_list:
+        cur_file_path = os.path.join(files_dir_path, file)
+        file_modified_time = datetime.datetime.fromtimestamp(os.path.getmtime(cur_file_path))
+        if datetime.datetime.now() - file_modified_time > datetime.timedelta(hours=CONFIG.FILE_TTL_HOUR):
+            try:
+                os.remove(cur_file_path)
+                if not has_print_msg:
+                    print("Removed files:")
+                    has_print_msg = True
+                print(file)
+            except Exception:
+                pass
+    sys.stdout.flush()
+
 def usage():
     """Usage信息
 
     打印Usage信息，-v 版本(如：1.0，float格式)，-p：端口，
     -f：强制覆盖归一值(更新版本LOG10_MAX值时)
     """
-    print('Usage: main.py -v <version> [-p <port>] [-f]')
+    print('Usage: main.py -v <version> [-p <port>] [-f] [-c]')
 
 def main():
     """配置服务端，启用事件循环
@@ -230,8 +256,10 @@ def main():
     application_port = CONFIG.PORT
     application_version = None
     application_force_update = False
+    application_clean_up_empty_combined_data = False
+    application_remove_old_file = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'p:v:f', ['port=', 'version=', 'force'])
+        opts, args = getopt.getopt(sys.argv[1:], 'p:v:fcr', ['port=', 'version=', 'force', 'cleanup', 'remove'])
         for opt, arg in opts:
             if opt in ("-p", "--port"):
                 application_port = int(arg)
@@ -241,6 +269,10 @@ def main():
                     raise ValueError("输入的版本号不存在")
             elif opt in ("-f", "--force"):
                 application_force_update = True
+            elif opt in ("-c", "--cleanup"):
+                application_clean_up_empty_combined_data = True
+            elif opt in ("-r", "--remove"):
+                application_remove_old_file = True
             else:
                 pass
         if not application_version:
@@ -264,21 +296,22 @@ def main():
                         db=db, version=application_version)
     application.listen(application_port)
     app_ioloop = tornado.ioloop.IOLoop.current()
+
     if application_force_update:
         app_ioloop.run_sync(lambda : core.update_norm_to_version(db, application_version))
+    else:
+        app_ioloop.run_sync(lambda : core.version_check(db, application_version))
+    if application_clean_up_empty_combined_data:
+        app_ioloop.run_sync(lambda : core.clean_up_empty_combined_data(db))
+    if application_remove_old_file:
+        app_ioloop.run_sync(remove_old_file)
+
+    periodic_remove_old_file()
+
     print('Application running on port: ', application_port)
     sys.stdout.flush()
     # 启用非阻塞事件循环
     app_ioloop.start()
-    
-def test(db, version):
-    result = None
-    for _ in range(30000):
-        result = db[CONFIG.RAW_COLLECTION_NAME].find( \
-                {'_id' : bson.objectid.ObjectId("5b360148e2c3804470000010")}).to_list(length=100)
-    print('Update complete')
-    sys.stdout.flush()
-    return result
 
 if __name__ == "__main__":
     main()

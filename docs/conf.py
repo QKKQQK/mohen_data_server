@@ -31,3 +31,14 @@ GET_LIMIT = 1000
 # 查询时，每次I/O缓存文档条数
 TO_LIST_BUFFER_LENGTH = 100
 
+# 查询生成文件有效时长(小时)
+FILE_TTL_HOUR = 24
+
+# 自动清理文件频率(x小时后)
+FILE_REMOVE_FREQUENCY_HOUR = 24
+
+# 自动清理文件频率(x分钟后)
+FILE_REMOVE_FREQUENCY_MINUTE = 0
+
+# 自动清理文件频率(x秒后)
+FILE_REMOVE_FREQUENCY_SECOND = 0
