@@ -212,15 +212,31 @@ class SearchHandler(tornado.web.RequestHandler):
                         self.flush()
                         self.finish()
 
+def periodic_remove_old_file():
+    def wrapper():
+        remove_old_file()
+        periodic_remove_old_file()
+    scheduled_remove_old_file_timedelta = datetime.timedelta(hours=CONFIG.FILE_REMOVE_FREQUENCY_HOUR, \
+            minutes=CONFIG.FILE_REMOVE_FREQUENCY_MINUTE, seconds=CONFIG.FILE_REMOVE_FREQUENCY_SECOND)
+    tornado.ioloop.IOLoop.current().add_timeout(scheduled_remove_old_file_timedelta, wrapper)
 
 def remove_old_file():
-    dir_to_search = os.path.curdir
-    for dirpath, dirnames, filenames in os.walk('/files'):
-       for file in filenames:
-          curpath = os.path.join(dirpath, file)
-          file_modified = datetime.datetime.fromtimestamp(os.path.getmtime(curpath))
-          if datetime.datetime.now() - file_modified > datetime.timedelta(hours=CONFIG.FILE_TTL_HOUR):
-              os.remove(curpath)
+    files_dir_path = os.path.join(os.path.dirname(__file__), 'files/')
+    file_list = os.listdir(files_dir_path)
+    has_print_msg = False
+    for file in file_list:
+        cur_file_path = os.path.join(files_dir_path, file)
+        file_modified_time = datetime.datetime.fromtimestamp(os.path.getmtime(cur_file_path))
+        if datetime.datetime.now() - file_modified_time > datetime.timedelta(hours=CONFIG.FILE_TTL_HOUR):
+            try:
+                os.remove(cur_file_path)
+                if not has_print_msg:
+                    print("Removed files:")
+                    has_print_msg = True
+                print(file)
+            except Exception:
+                pass
+    sys.stdout.flush()
 
 def usage():
     """Usage信息
@@ -289,6 +305,8 @@ def main():
         app_ioloop.run_sync(lambda : core.clean_up_empty_combined_data(db))
     if application_remove_old_file:
         app_ioloop.run_sync(remove_old_file)
+
+    periodic_remove_old_file()
 
     print('Application running on port: ', application_port)
     sys.stdout.flush()
