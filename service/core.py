@@ -242,5 +242,3 @@ async def clean_up_empty_combined_data(db):
     print('Cleanup complete,', count, 'documents deleted')
     sys.stdout.flush()
     
-def remove_old_file():
-    pass

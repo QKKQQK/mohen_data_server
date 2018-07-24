@@ -84,7 +84,7 @@ class Search:
         # String[]
         self.sort_order_by = self.get_attr('sort_order_by')
 
-        # String
+        # String[]
         self.aggr_group_by = self.get_attr('aggr_group_by')
         # String[]
         self.aggr_attr_proj = self.get_attr('aggr_attr_proj')
@@ -157,7 +157,9 @@ class Search:
     def query_group(self):
         if self.aggr_group_by and self.aggr_attr_proj and self.aggr_attr_group_type:
             result = {}
-            result['_id'] = '$' + self.aggr_group_by
+            result['_id'] = {}
+            for group_by in self.aggr_group_by:
+            	result['_id'][group_by] = '$' + group_by
             for attr_proj in self.aggr_attr_proj:
                 for attr_group_type in self.aggr_attr_group_type:
                     attr_proj_name = (attr_proj + '_' + attr_group_type).replace('.', '_')

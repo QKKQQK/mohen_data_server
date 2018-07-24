@@ -136,7 +136,6 @@ class UploadHandler(tornado.web.RequestHandler):
 
 class SearchHandler(tornado.web.RequestHandler):
     async def post(self):
-
         req_data = []
         req_metadata = []
         # 检测请求body部分否存在'data'与'metadata'键
@@ -213,6 +212,16 @@ class SearchHandler(tornado.web.RequestHandler):
                         self.flush()
                         self.finish()
 
+
+def remove_old_file():
+    dir_to_search = os.path.curdir
+    for dirpath, dirnames, filenames in os.walk('/files'):
+       for file in filenames:
+          curpath = os.path.join(dirpath, file)
+          file_modified = datetime.datetime.fromtimestamp(os.path.getmtime(curpath))
+          if datetime.datetime.now() - file_modified > datetime.timedelta(hours=CONFIG.FILE_TTL_HOUR):
+              os.remove(curpath)
+
 def usage():
     """Usage信息
 
@@ -279,7 +288,7 @@ def main():
     if application_clean_up_empty_combined_data:
         app_ioloop.run_sync(lambda : core.clean_up_empty_combined_data(db))
     if application_remove_old_file:
-        app_ioloop.run_sync(core.remove_old_file)
+        app_ioloop.run_sync(remove_old_file)
 
     print('Application running on port: ', application_port)
     sys.stdout.flush()
