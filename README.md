@@ -50,13 +50,13 @@ tag | 事件相关标签(备用) | Array | 是 | [ObjectId("5b3a6268000000000000
 klist | 知识点树路径 | Array | 是 | [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]  
 rlist | 关系树路径 | Array | 是 | [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]  
 extlist | 拓展路径(备用) | Object | 是  (例子：extlist, extlist.test_path) | {test_path : [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]}  
-ugroup | 用户所属大分类(如“届”)代码 | Int32 | 是 | 2016  
+ugroup | 用户所属大分类(如"届")代码 | Int32 | 是 | 2016  
 uid | 用户 _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
 fid | 文件 _id(备用) | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
 eid | 设备 _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
-v1 | 数值：操作次数 | Double | 是 | 10.0  
-v2 | 数值：事件时长 | Double | 是 | 10.0  
-v3 | 拓展数值(备用) | Object | 是  (例子：v3, v3.test_val1, v3.test_val2) | {test_val1 : 10.0, test_val2 : 9999.0}  
+v1 | 数值(如"操作次数") | Double | 是 | 10.0 (注：v1不可为0或负数)
+v2 | 数值(如"事件时长") | Double | 是 | 10.0 (注：v2不可为负数)
+v3 | 拓展数值(备用) | Object | 是  (例子：v3, v3.test_val1, v3.test_val2) | {test_val1 : 10.0, test_val2 : 9999.0} (注：v3任意值不可为负数)
 cfg | 字符串值 | String | 是 | "Y\|Y\|Y\|"  
 utc_date | 数据创建日期时间(UTC+0) | Date | 是 | "2018-06-12 10:53:54.247"  
 
@@ -111,12 +111,12 @@ tag | 事件相关标签(备用) | 否 | Object[] | 24位16进制数字字符串
 klist | 知识点树路径 | 否 | Object[] | 24位16进制数字字符串 | [] | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]  
 rlist | 关系树路径 | 否 | Object[] | 24位16进制数字字符串 | [] | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]  
 extlist | 拓展路径(备用) | 否 | Object | 24位16进制数字字符串 | {} | {"path_1" : [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]}  
-ugroup | 用户所属大分类(如“届”)代码 | 否 | Number | 无 | 0 | 2015  
+ugroup | 用户所属大分类(如"届")代码 | 否 | Number | 无 | 0 | 2015  
 uid | 用户 _id | 否 | Object | 24位16进制数字字符串 | {"$oid" : "000000000000000000000000"} | {"$oid" : "5a0ab7dad5cb310b9830ef27"}  
 fid | 文件 _id(备用) | 否 | Object | 24位16进制数字字符串 | {"$oid" : "000000000000000000000000"} | {"$oid" : "5a0ab7dad5cb310b9830ef27"}  
 eid | 设备 _id | 是 | Object | 24位16进制数字字符串 | 无 | {"$oid" : "5a0ab7dad5cb310b9830ef27"}  
-v1 | 数值：操作次数 | 是 | Number | v1必须大于0 | 无 | 10.0  
-v2 | 数值：事件时长 | 否 | Number | 无 | 0 | 15.0  
+v1 | 数值(如"操作次数") | 是 | Number | v1必须大于0 | 无 | 10.0  
+v2 | 数值(如"事件时长") | 否 | Number | 无 | 0 | 15.0  
 v3 | 拓展数值(备用) | 否 | Object | 仅用于存储Number类，不可用于储存Object类 | {} | {"val_1" : 123.456}  
 cfg | 字符串值 | 否 | String | 无 | "" | "Y\|Y\|Y\|"  
 utc_date | 数据时间戳 | 是 | Object | 时间戳(毫秒)，无需考虑时区 | 无 | {"$date" : "1530010000000"}  
@@ -338,7 +338,7 @@ data. | 查询数据条件参数 | 是 |
 openid | 数据提交第三方 _id | 是 | String | 使用UUID1 | 匹配 | "f857e9f6-6e26-11e8-adc0-fa7ae01bbebc"  
 extlist | 匹配拓展路径(备用) | 否 | Object | 24位16进制数字字符串 | 匹配 | {"path_1" : [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]}，相应匹配条件：extlist['path_1']的值(Array类型)中存在{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
 v3 | 拓展数值匹配下限(备用) | 否 | Object | 仅用于匹配Number类 | 匹配，范围匹配 | {"test_1" : [10, 20], "test_2" ： [20, 500]}， 配合v3_upper使用，v3的各键值Array中每一位(下限)对应v3_upper相应键值的Array位置(上限)，组成一个范围，当一个范围下限等于上限时将变成匹配，下限小于上限时将变成范围匹配，下限大于上限时，上限为-1则为范围匹配(<=下限)，上限为-2时则为范围匹配(>=下限)
-v3_upper | 拓展数值匹配上限(备用) | 否 | Object | 仅用于匹配Number类 | 匹配，范围匹配 | {"test_1" : [-1, 40], "test_2" : [20, -2]}，配合v3的相应匹配条件：(v3['test_1'] <= 10 或 (20 <= v3['test_1'] <= 40))并且(v3['test_2'] = 20 或 v3['test_2'] >= 500)  
+v3_upper | 拓展数值匹配上限(备用) | 否(v3参数存在时为必需) | Object | 仅用于匹配Number类 | 匹配，范围匹配 | {"test_1" : [-1, 40], "test_2" : [20, -2]}，配合v3的相应匹配条件：(v3['test_1'] <= 10 或 (20 <= v3['test_1'] <= 40))并且(v3['test_2'] = 20 或 v3['test_2'] >= 500)  
 rlist | 匹配关系树路径 | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：rlist的值(Array类型)中存在{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
 pid | 匹配数据的父级节点 _id | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：pid的值(ObjectId类型)为{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
 uid | 匹配用户 _id | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：uid的值(ObjectId类型)为{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
@@ -349,7 +349,13 @@ tag | 匹配事件相关标签(备用) | 否 | Object[] | 24位16进制数字字
 klist | 匹配知识点树路径 | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：klist的值(Array类型)中存在{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
 cfg | 匹配字符串值 | 否 | String[] | 无 | 匹配 | ["Y\|Y\|Y\|", "ACDCB"]，相应匹配条件：cfg的值(String类型)为"Y\|Y\|Y\|"或"ACDCB"  
 ugroup | 用户所属大分类(如“届”)代码匹配下限 | 否 | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [2010, 2012, 2013, 2016]， 配合ugroup_upper使用，ugroup的Array中每一位(下限)对应ugroup_upper的Array位置(上限)，组成一个范围，当一个范围下限等于上限时将变成匹配，下限小于上限时将变成范围匹配，下限大于上限时，上限为-1则为范围匹配(<=下限)，上限为-2时则为范围匹配(>=下限)
-ugroup_upper | 用户所属大分类(如“届”)代码匹配上限 | 否 | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [-1, 2012, 2014, -2]，配合ugroup的相应匹配条件：ugroup <= 2010 或 ugroup = 2012 或 2013 <= ugroup <= 2014 或 ugroup >= 2016
+ugroup_upper | 用户所属大分类(如“届”)代码匹配上限 | 否(ugroup参数存在时为必需) | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [-1, 2012, 2014, -2]，配合ugroup的相应匹配条件：ugroup <= 2010 或 ugroup = 2012 或 2013 <= ugroup <= 2014 或 ugroup >= 2016
+exttype | 事件所属小类别代码匹配下限 | 否 | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [100, 200, 250, 500]， 配合exttype_upper使用，exttype的Array中每一位(下限)对应exttype_upper的Array位置(上限)，组成一个范围，当一个范围下限等于上限时将变成匹配，下限小于上限时将变成范围匹配，下限大于上限时，上限为-1则为范围匹配(<=下限)，上限为-2时则为范围匹配(>=下限)
+exttype_upper | 事件所属小类别代码匹配上限 | 否(exttype参数存在时为必需) | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [-1, 200, 300, -2]，配合exttype的相应匹配条件：exttype <= 100 或 exttype = 200 或 250 <= exttype <= 300 或 exttype >= 500
+type | 事件所属大类别代码匹配下限 | 否 | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [10, 20, 25, 50]， 配合type_upper使用，type的Array中每一位(下限)对应type_upper的Array位置(上限)，组成一个范围，当一个范围下限等于上限时将变成匹配，下限小于上限时将变成范围匹配，下限大于上限时，上限为-1则为范围匹配(<=下限)，上限为-2时则为范围匹配(>=下限)
+type_upper | 事件所属大类别代码匹配上限 | 否(type参数存在时为必需) | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [-1, 20, 30, -2]，配合type的相应匹配条件：type <= 10 或 type = 20 或 25 <= type <= 30 或 type >= 50
+v1 | 数值(如"操作次数")匹配下限 | 否 | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [0.1, 100, 2000, 99999]， 配合v1_upper使用，v1的Array中每一位(下限)对应v1_upper的Array位置(上限)，组成一个范围，当一个范围下限等于上限时将变成匹配，下限小于上限时将变成范围匹配，下限大于上限时，上限为-1则为范围匹配(<=下限)，上限为-2时则为范围匹配(>=下限)
+v1_upper | 数值(如"操作次数")匹配上限 | 否(v1参数存在时为必需) | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [-1, 100, 3000, -2]，配合v1的相应匹配条件：v1 <= 0.1 或 v1 = 100 或 2000 <= v1 <= 3000 或 v1 >= 99999
 
 
 [返回目录](#目录)
