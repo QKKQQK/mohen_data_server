@@ -426,6 +426,8 @@ aggr_attr_group_type | 聚合查询操作("max", "min", "sum", "avg") | 否(aggr
 
 #### 返回文件 HTTP响应 搜索条件数据格式不正确
 
+##### 对应异常：搜索条件无法转换成正确的BSON格式，如ObjectId不是24个hex字符
+
 [返回目录](#目录)
 
     {
@@ -434,6 +436,8 @@ aggr_attr_group_type | 聚合查询操作("max", "min", "sum", "avg") | 否(aggr
     }
     
 #### 返回文件 HTTP响应 搜索条件类型不规范
+
+##### 对应异常：搜索条件的类型出错，如pid需要Object[]类型实际传输数据为Object类型
 
 [返回目录](#目录)
 
@@ -541,6 +545,8 @@ aggr_attr_group_type | 聚合查询操作("max", "min", "sum", "avg") | 否(aggr
 
 #### 不返回文件 HTTP响应 搜索条件数据格式不正确
 
+##### 对应异常：搜索条件无法转换成正确的BSON格式，如ObjectId不是24个hex字符
+
 [返回目录](#目录)
 
     {
@@ -549,6 +555,8 @@ aggr_attr_group_type | 聚合查询操作("max", "min", "sum", "avg") | 否(aggr
     }
     
 #### 不返回文件 HTTP响应 搜索条件类型不规范
+
+##### 对应异常：搜索条件的类型出错，如pid需要Object[]类型实际传输数据为Object类型
 
 [返回目录](#目录)
 
