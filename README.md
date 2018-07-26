@@ -337,8 +337,8 @@ file | 是否以文件形式返回(返回文件名，不包含文件扩展名) |
 data. | 查询数据条件参数 | 是 | 
 openid | 数据提交第三方 _id | 是 | String | 使用UUID1 | 匹配 | "f857e9f6-6e26-11e8-adc0-fa7ae01bbebc"  
 extlist | 匹配拓展路径(备用) | 否 | Object | 24位16进制数字字符串 | 匹配 | {"path_1" : [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]}，相应匹配条件：extlist['path_1']的值(Array类型)中存在{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
-v3 | 拓展数值匹配下限(备用) | 否 | Object | 仅用于存储Number类，不可用于储存Object类 | 匹配，范围匹配 | {"test_1" : [10, 20], "test_2" ： [20, 500]}， 配合v3_upper使用，v3的各键值Array中每一位(下限)对应v3_upper相应键值的Array位置(上限)，组成一个范围，当一个范围下限等于上限时将变成匹配，下限小于上限时将变成范围匹配，下限大于上限时，上限为-1则为范围匹配(<=下限)，上限为-2时则为范围匹配(>=下限)
-v3_upper | 拓展数值匹配上限(备用) | 否 | Object | 仅用于存储Number类，不可用于储存Object类 | 匹配，范围匹配 | {"test_1" : [-1, 40], "test_2" : [20, -2]}，配合v3的相应匹配条件：(v3['test_1'] <= 10 或 (20 <= v3['test_1'] <= 40))并且(v3['test_2'] = 20 或 v3['test_2'] >= 500)  
+v3 | 拓展数值匹配下限(备用) | 否 | Object | 仅用于匹配Number类 | 匹配，范围匹配 | {"test_1" : [10, 20], "test_2" ： [20, 500]}， 配合v3_upper使用，v3的各键值Array中每一位(下限)对应v3_upper相应键值的Array位置(上限)，组成一个范围，当一个范围下限等于上限时将变成匹配，下限小于上限时将变成范围匹配，下限大于上限时，上限为-1则为范围匹配(<=下限)，上限为-2时则为范围匹配(>=下限)
+v3_upper | 拓展数值匹配上限(备用) | 否 | Object | 仅用于匹配Number类 | 匹配，范围匹配 | {"test_1" : [-1, 40], "test_2" : [20, -2]}，配合v3的相应匹配条件：(v3['test_1'] <= 10 或 (20 <= v3['test_1'] <= 40))并且(v3['test_2'] = 20 或 v3['test_2'] >= 500)  
 rlist | 匹配关系树路径 | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：rlist的值(Array类型)中存在{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
 pid | 匹配数据的父级节点 _id | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：pid的值(ObjectId类型)为{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
 uid | 匹配用户 _id | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：uid的值(ObjectId类型)为{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
@@ -347,6 +347,9 @@ eid | 匹配设备 _id | 否 | Object[] | 24位16进制数字字符串 | 匹配 
 name | 匹配事件名称 | 否 | String[] | 无 | 匹配 | ["重置密码", "迟到"]，相应匹配条件：name的值(String类型)为"重置密码"或"迟到"
 tag | 匹配事件相关标签(备用) | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：tag的值(Array类型)中存在{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
 klist | 匹配知识点树路径 | 否 | Object[] | 24位16进制数字字符串 | 匹配 | [{"$oid" : "5a0ab7dad5cb310b9830ef26"}, {"$oid" : "5a0ab7dad5cb310b9830ef27"}]，相应匹配条件：klist的值(Array类型)中存在{"$oid" : "5a0ab7dad5cb310b9830ef26"}或{"$oid" : "5a0ab7dad5cb310b9830ef27"}
+cfg | 匹配字符串值 | 否 | String[] | 无 | 匹配 | ["Y\|Y\|Y\|", "ACDCB"]，相应匹配条件：cfg的值(String类型)为"Y\|Y\|Y\|"或"ACDCB"  
+ugroup | 用户所属大分类(如“届”)代码匹配下限 | 否 | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [2010, 2012, 2013, 2016]， 配合ugroup_upper使用，ugroup的Array中每一位(下限)对应ugroup_upper的Array位置(上限)，组成一个范围，当一个范围下限等于上限时将变成匹配，下限小于上限时将变成范围匹配，下限大于上限时，上限为-1则为范围匹配(<=下限)，上限为-2时则为范围匹配(>=下限)
+ugroup_upper | 用户所属大分类(如“届”)代码匹配上限 | 否 | Number[] | 仅用于匹配Number类 | 匹配，范围匹配 | [-1, 2012, 2014, -2]，配合ugroup的相应匹配条件：ugroup <= 2010 或 ugroup = 2012 或 2013 <= ugroup <= 2014 或 ugroup >= 2016
 
 
 [返回目录](#目录)
