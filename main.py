@@ -148,7 +148,7 @@ class SearchHandler(tornado.web.RequestHandler):
             # HTTP响应内容
             res = {
                 'code' : 1, 
-                'err_msg' : '数据格式错误'
+                'err_msg' : '数据格式不符合MongoDB格式: ' + str(e)
             }
             # 将错误信息写入输出缓冲区
             self.write(res)
@@ -160,57 +160,80 @@ class SearchHandler(tornado.web.RequestHandler):
         if req_data and req_metadata:
             if 'file' in req_metadata:
                 cursor = Search(req_data).to_query(self.settings['db'])
+                print("After cursor")
+                sys.stdout.flush()
                 if not req_metadata['file']:
                     # MotorCursor，这一步不进行I/O
                     result = []
                     # to_list()每次缓冲length条文档，执行I/O
-                    for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
-                        result += [doc]
-                    # 将BSON格式结果转换成JSON格式
-                    result = json.loads(bson.json_util.dumps(result))
-                    # HTTP响应内容
-                    res = {
-                        'code' : 0, 
-                        'data' : result,
-                        'count': {
-                            'n_record' : len(result)
-                        }
-                    }
-                    self.write(res)
-                    self.flush()
-                    self.finish()
-                else:
-                    res_uuid = helpers.get_UUID()
-                    has_result = False
-                    with open(('files/'+res_uuid+'.csv'), 'w', newline='') as f:
-                        fieldnames = []
-                        writer = None
+                    try: 
                         for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
-                            doc = json.loads(bson.json_util.dumps(doc))
-                            if not has_result:
-                                res = {
-                                    'code' : 0,
-                                    'data' : {
-                                        'uuid' : res_uuid
-                                    }
-                                }
-                                self.write(res)
-                                self.flush()
-                                self.finish()
-                                has_result = True
-                                fieldnames = list(doc.keys())
-                                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
-                                writer.writeheader()
-                            writer.writerow(doc)            
-                    if not has_result:
+                            result += [doc]
+                        # 将BSON格式结果转换成JSON格式
+                        result = json.loads(bson.json_util.dumps(result))
                         # HTTP响应内容
                         res = {
-                            'code' : 5,
-                            'err_msg' : '搜索无结果'
+                            'code' : 0, 
+                            'data' : result,
+                            'count': {
+                                'n_record' : len(result)
+                            }
                         }
                         self.write(res)
                         self.flush()
                         self.finish()
+                    except Exception:
+                        res = {
+                            'code' : 1, 
+                            'err_msg' : '数据类型不规范'
+                        }
+                        self.write(res)
+                        self.flush()
+                        self.finish()
+                else:
+                    res_uuid = helpers.get_UUID()
+                    has_result = False
+                    has_error = False
+                    with open(('files/'+res_uuid+'.csv'), 'w', newline='') as f:
+                        fieldnames = []
+                        writer = None
+                        try:
+                            for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
+                                doc = json.loads(bson.json_util.dumps(doc))
+                                if not has_result:
+                                    res = {
+                                        'code' : 0,
+                                        'data' : {
+                                            'uuid' : res_uuid
+                                        }
+                                    }
+                                    self.write(res)
+                                    self.flush()
+                                    self.finish()
+                                    has_result = True
+                                    fieldnames = list(doc.keys())
+                                    writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+                                    writer.writeheader()
+                                writer.writerow(doc)
+                        except Exception:
+                            res = {
+                                'code' : 1, 
+                                'err_msg' : '数据类型不规范'
+                            }
+                            has_error = True
+                            self.write(res)
+                            self.flush()
+                            self.finish()           
+                    if not has_result:
+                        if not has_error:
+                            # HTTP响应内容
+                            res = {
+                                'code' : 5,
+                                'err_msg' : '搜索无结果'
+                            }
+                            self.write(res)
+                            self.flush()
+                            self.finish()
 
 def periodic_remove_old_file():
     def wrapper():

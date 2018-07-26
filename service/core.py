@@ -186,7 +186,10 @@ async def update_combined_collection_norm_val(handler, new_record, inc):
 
 async def sample_for_version(db):
     doc = await db[CONFIG.COMBINED_COLLECTION_NAME].find_one({'flag' : 1})
-    return doc['version']
+    if doc:
+        return doc['version']
+    else:
+        return 0.0
 
 async def version_check(db, input_version):
     current_version = await sample_for_version(db)
