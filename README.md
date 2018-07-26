@@ -12,6 +12,14 @@
     * [POST 查询数据 非聚合 例子](#查询数据-非聚合-例子)
     * [POST 查询数据 聚合 例子](#查询数据-聚合-例子)
     * [POST 查询数据 字段要求](#post-查询数据-字段要求)
+  * [POST 查询数据 HTTP响应 返回文件 例子](#post-查询数据-http响应-返回文件-例子)
+    * [返回文件 HTTP响应 正常](#返回文件-http响应-正常)
+    * [返回文件 HTTP响应 JSON格式不正确](#返回文件-http响应-json格式不正确)
+    * [返回文件 HTTP响应 搜索条件数据格式不正确](#返回文件-http响应-搜索条件数据格式不正确)
+  * [POST 查询数据 HTTP响应 不返回文件 例子](#post-查询数据-http响应-不返回文件-例子)
+    * [不返回文件 HTTP响应 正常](#不返回文件-http响应-正常)
+    * [不返回文件 HTTP响应 JSON格式不正确](#不返回文件-http响应-json格式不正确)
+    * [不返回文件 HTTP响应 搜索条件数据格式不正确](#不返回文件-http响应-搜索条件数据格式不正确)
  
 ## 数据库数据格式
 
@@ -65,7 +73,7 @@ fid | 文件 _id(备用) | ObjectId | 是 | ObjectId("5b3a62680000000000000000")
 eid | 设备 _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
 v1 | 数值(如"操作次数") | Double | 是 | 10.0 (注：v1不可为0或负数)
 v2 | 数值(如"事件时长") | Double | 是 | 10.0 (注：v2不可为负数)
-v3 | 拓展数值(备用) | Object | 是  (例子：v3, v3.test_val1, v3.test_val2) | {test_val1 : 10.0, test_val2 : 9999.0} (注：v3任意值不可为负数)
+v3 | 拓展数值(备用) | Object | 是  (例子：v3, v3.test_val1, v3.test_val2) | {test_val1 : 10.0, test_val2 : 9999.0} (注：v3任意值不可为负数, v3初始化时会有一个对默认键值{'placeholder' : 0})
 cfg | 字符串值 | String | 是 | "Y\|Y\|Y\|"  
 utc_date | 数据创建日期时间(UTC+0) | Date | 是 | "2018-06-12 10:53:54.247"  
 
@@ -388,5 +396,155 @@ sort_asc | 排序所根据的字段的升序降序 | 否(sort_order_by参数存�
 aggr_group_by | 聚合查询时聚合的字段 | 否(aggr_attr_proj和aggr_attr_group_type参数存在时为必需) | String[] | 无 | | ["uid", "type"]，先以uid聚合，同一uid的数据再以type聚合  
 aggr_attr_proj | 聚合查询时需要聚合的数值字段(v1, v2, v3.attr, v1_norm, v2_norm, v3_norm.attr) | 否(aggr_group_by和aggr_attr_group_type参数存在时为必需) | String[] | 无 | | ["v2", "v1_norm", "v3.test_1", "v3_norm.test_1"]，其余数值字段不返回结果  
 aggr_attr_group_type | 聚合查询操作("max", "min", "sum", "avg") | 否(aggr_group_by和aggr_attr_proj参数存在时为必需) | String[] | 无 | | ["sum", "avg"]  
+
+### POST 查询数据 HTTP响应 返回文件 例子
+
+#### 返回文件 HTTP响应 正常
+
+[返回目录](#目录)
+
+    {
+        "code": 0,
+        "data": { // 返回文件名，再通过GET /files/813f4686-90a3-11e8-b091-f40f2429b7c7.csv 获取数据
+            "uuid": "813f4686-90a3-11e8-b091-f40f2429b7c7"
+        }
+    }
+  
+    
+#### 返回文件 HTTP响应 JSON格式不正确
+
+[返回目录](#目录)
+
+    {
+        "code": 1,
+        "err_msg": "数据格式错误: 'metadata'"
+    }
+
+#### 返回文件 HTTP响应 搜索条件数据格式不正确
+
+[返回目录](#目录)
+
+    {
+        "code": 1,
+        "err_msg": "数据格式错误: '00000000000000009000009' is not a valid ObjectId, it must be a 12-byte input or a 24-character hex string"
+    }
+    
+#### 返回文件 HTTP响应 搜索无结果
+
+[返回目录](#目录)
+
+    {
+        "code": 5,
+        "err_msg": "搜索无结果"
+    }
+
+### POST 查询数据 HTTP响应 不返回文件 例子
+
+#### 不返回文件 HTTP响应 正常
+
+[返回目录](#目录)
+
+    {
+        "code": 0,
+        "data": [
+            {
+                "_id": {
+                    "$oid": "000000000000000000000001"
+                },
+                "extlist": {},
+                "exttype": 123,
+                "fid": {
+                    "$oid": "000000000000000000000001"
+                },
+                "flag": 1,
+                "klist": [
+                    {
+                        "$oid": "000000000000000000000001"
+                    },
+                    {
+                        "$oid": "000000000000000000000002"
+                    }
+                ],
+                "name": "测试",
+                "openid": "f857e9f6-6e26-11e8-adc0-fa7ae01bbebc",
+                "pid": {
+                    "$oid": "000000000000000000000002"
+                },
+                "rlist": [
+                    {
+                        "$oid": "000000000000000000000001"
+                    },
+                    {
+                        "$oid": "000000000000000000000002"
+                    }
+                ],
+                "tag": [],
+                "type": 123,
+                "ugroup": 2011,
+                "uid": {
+                    "$oid": "000000000000000000000001"
+                },
+                "cfg": "测试字符串",
+                "eid": {
+                    "$oid": "000000000000000000000001"
+                },
+                "utc_date": {
+                    "$date": 1530009960000
+                },
+                "v1": 20,
+                "v2": 600,
+                "v3": {
+                    "placeholder": 0,
+                    "test1": 200,
+                    "test2": 300
+                },
+                "version": 1,
+                "v1_norm": 0.5252185346943057,
+                "v2_norm": 1.1215241260759554,
+                "v3_norm": {
+                    "placeholder": 0,
+                    "test1": 0.928912943312656,
+                    "test2": 1
+                }
+            }, {
+                ...
+            }, {
+                ...
+            }
+        ],
+        "count": {
+            "n_record": 3
+        }
+    }
+    
+#### 不返回文件 HTTP响应 JSON格式不正确
+
+[返回目录](#目录)
+
+    {
+        "code": 1,
+        "err_msg": "数据格式错误: 'metadata'"
+    }    
+
+#### 不返回文件 HTTP响应 搜索条件数据格式不正确
+
+[返回目录](#目录)
+
+    {
+        "code": 1,
+        "err_msg": "数据格式错误: '00000000000000009000009' is not a valid ObjectId, it must be a 12-byte input or a 24-character hex string"
+    }
+    
+#### 不返回文件 HTTP响应 搜索无结果
+
+[返回目录](#目录)
+
+    {
+        "code": 0,
+        "data": [],
+        "count": {
+            "n_record": 0
+        }
+    }
 
 [返回目录](#目录)
