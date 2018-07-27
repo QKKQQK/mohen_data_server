@@ -1,9 +1,17 @@
 # 目录
 
+* [功能与注意事项](#功能与注意事项)
+  * [pip安装所需模块](#pip安装所需模块)
+  * [服务端Usage](#服务端usage)
+  * [版本](#版本)
+  * [UUID1](#uuid1)
+  * [Tornado 与 Motor](#tornado-与-motor)
 * [服务端结构](#服务端结构)
 * [数据库数据格式](#数据库数据格式)  
-  * [原始数据 集合 文档结构](#原始数据-集合-文档结构)  
+  * [原始数据 集合 文档结构](#原始数据-集合-文档结构)   
   * [原始数据 集合 字段要求(BSON)](#原始数据-集合-字段要求)  
+  * [合并数据 集合 文档结构](#合并数据-集合-文档结构)   
+  * [合并数据 集合 字段要求(BSON)](#合并数据-集合-字段要求) 
 * [API](#api)  
   * [POST 上传数据 JSON格式](#post-上传数据-json格式)
     * [POST 上传数据 例子](#post-上传数据-例子)
@@ -26,7 +34,52 @@
     * [不返回文件 HTTP响应 搜索条件数据格式不正确](#不返回文件-http响应-搜索条件数据格式不正确)
     * [不返回文件 HTTP响应 搜索条件类型不规范](#不返回文件-http响应-搜索条件类型不规范)
     * [不返回文件 HTTP响应 搜索无结果](#不返回文件-http响应-搜索无结果)
- 
+
+## 功能与注意事项
+
+### pip安装所需模块
+
+[返回目录](#目录)
+
+    pip install -r requirements.txt
+
+### 服务端Usage
+
+[返回目录](#目录)
+
+    Usage: main.py -v <version> [-p <port>] [-f] [-c] [-r]
+    
+    -v <version> : 版本，float格式，如1.1，详见doc/conf.py  
+    -p <port> ：端口，可在conf.py中更改，也可以启动时自定义  
+    -f ：强制更新数据至 -v 所指定的的版本，需要关闭所有其他服务端进程  
+    -c ：手动清除无效的合并数据(v1为0)，需要关闭所有其他服务端进程  
+    -r ：手动清除过期文件，默认清楚24小时前的csv文件，正在被打开的文件将被跳过  
+    
+注：服务端在处理完强制更新，清除无效数据，清除文件后才会开始接受请求  
+
+### 版本
+
+[返回目录](#目录)
+
+MongoDB : v3.6.5  
+Tornado ：v5.0.2  
+Motor ：v1.2.2  
+Python : v3.6  
+其余版本详见requirements.txt  
+
+### UUID1  
+
+[返回目录](#目录)
+
+由于UUID1短时间内相对随机位数较少(14bit随机seq number => 2^14 = 16384情况)，考虑到生日悖论的效应，如果短时间内多次生成UUID1(或存在多Tornado进程时)可能出现重复的情况，如文件正被打开(多Tornado进程时)会出现查询无结果的错误，如文件已经存在并未被打开将会覆盖原有文件，导致针对原有文件的查询不准确。不推荐使用UUID4。
+
+### Tornado 与 Motor
+
+[返回目录](#目录)
+
+服务端所使用的Tornado框架是一个异步非阻塞网络框架，Motor是基于协程的异步非阻塞的MongoDB驱动。  
+服务端的设计基于协程，推荐的使用方法是为每一个CPU核开一个进程。 
+
 ## 服务端结构
 
 [返回目录](#目录)
@@ -78,16 +131,78 @@ type | 事件所属大类别代码 | Int32 | 是 | 50
 tag | 事件相关标签(备用) | Array | 是 | [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]  
 klist | 知识点树路径 | Array | 是 | [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]  
 rlist | 关系树路径 | Array | 是 | [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]  
-extlist | 拓展路径(备用) | Object | 是  (例子：extlist, extlist.test_path) | {test_path : [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]}  
+extlist | 拓展路径(备用) | Object | 是  (索引例子：extlist, extlist.test_path) | {test_path : [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]}  
 ugroup | 用户所属大分类(如"届")代码 | Int32 | 是 | 2016  
 uid | 用户 _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
 fid | 文件 _id(备用) | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
 eid | 设备 _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
 v1 | 数值(如"操作次数") | Double | 是 | 10.0 (注：v1不可为0或负数)
 v2 | 数值(如"事件时长") | Double | 是 | 10.0 (注：v2不可为负数)
-v3 | 拓展数值(备用) | Object | 是  (例子：v3, v3.test_val1, v3.test_val2) | {test_val1 : 10.0, test_val2 : 9999.0} (注：v3任意值不可为负数, v3初始化时会有一个对默认键值{'placeholder' : 0})
+v3 | 拓展数值(备用) | Object | 是  (索引例子：v3, v3.test_val1, v3.test_val2) | {test_val1 : 10.0, test_val2 : 9999.0} (注：v3任意值不可为负数, v3初始化时会有一个对默认键值{'placeholder' : 0})
 cfg | 字符串值 | String | 是 | "Y\|Y\|Y\|"  
-utc_date | 数据创建日期时间(UTC+0) | Date | 是 | "2018-06-12 10:53:54.247"  
+utc_date | 原始数据创建日期时间 | Date | 是 | "2018-06-12 10:53:54.247"  
+
+### 合并数据 集合 文档结构
+
+[返回目录](#目录)
+
+    {
+        "_id" : ObjectId,
+        "openid" : String,
+        "pid" : ObjectId,
+        "name" : String,
+        "flag" : Int32,
+        "exttype" : Int32,
+        "type" : Int32,
+        "tag" : ObjectId[],
+        "klist" : ObjectId[],
+        "rlist" : ObjectId[],
+        "extlist" : Object,
+        "ugroup" : Int32,
+        "uid" : ObjectId,
+        "fid" : ObjectId,
+        "eid" : ObjectId,
+        "v1" : Double,
+        "v1_norm" : Double,
+        "v2" : Double,
+        "v2_norm" : Double,
+        "v3" : Object,
+        "v3_norm" : Object,
+        "cfg" : String,
+        "utc_date" : Date,
+        "version" : Double
+    }
+
+### 合并数据 集合 字段要求  
+
+[返回目录](#目录)
+
+字段 | 意义 | BSON类型 | 建立索引 | 例子
+---- | ---- | --- | ---- | ----
+_id  | 数据的MongoDB _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
+openid | 数据提交第三方 _id, uuid格式 | String | 是  | "04ca7d4a-706e-11e8-adc0-fa7ae01bbebc"  
+pid | 数据的父级节点 _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
+name | 事件名称 | String | 是 | "文档查看"  
+flag | 数据状态标志 | Int32 | 是 | 1  
+exttype | 事件所属小类别代码 | Int32 | 是 | 512  
+type | 事件所属大类别代码 | Int32 | 是 | 50  
+tag | 事件相关标签(备用) | Array | 是 | [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]  
+klist | 知识点树路径 | Array | 是 | [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]  
+rlist | 关系树路径 | Array | 是 | [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]  
+extlist | 拓展路径(备用) | Object | 是  (索引例子：extlist, extlist.test_path) | {test_path : [ObjectId("5b3a62680000000000000000"), ObjectId("5b3a62680000000000000001")]}  
+ugroup | 用户所属大分类(如"届")代码 | Int32 | 是 | 2016  
+uid | 用户 _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
+fid | 文件 _id(备用) | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
+eid | 设备 _id | ObjectId | 是 | ObjectId("5b3a62680000000000000000")  
+v1 | 数值(如"操作次数") | Double | 是 | 10.0 (注：v1不可为0或负数)
+v1_norm | v1归一值(如"操作次数") | Double | 是 | 0.896
+v2 | 数值(如"事件时长") | Double | 是 | 10.0 (注：v2不可为负数)
+v2_norm | v2归一值(如"事件时长") | Double | 是 | 0.764
+v3 | 拓展数值(备用) | Object | 是  (例子：v3, v3.test_val1, v3.test_val2) | {test_val1 : 10.0, test_val2 : 9999.0, placeholder : 0}
+v3_norm | v3各attr归一值(备用) | Object | 是 (索引例子：v3_norm, v3_norm.test_val1, v3_norm.test_val2) | {test_val1 : 0.243, test_val2 : 1.034, placeholder : 0}
+cfg | 字符串值 | String | 是 | "Y\|Y\|Y\|"  
+utc_date | 原始数据创建日期时间，分钟级 | Date | 是 | "2018-06-12 10:53:00" 
+version | 数据创建时的服务端版本号 | Double | 是 | 1.1
 
 ## API  
 
@@ -504,6 +619,8 @@ aggr_attr_proj | 聚合查询时需要聚合的数值字段(v1, v2, v3.attr, v1_
 aggr_attr_group_type | 聚合查询操作("max", "min", "sum", "avg") | 否(aggr_group_by和aggr_attr_proj参数存在时为必需) | String[] | 无 | | ["sum", "avg"]  
 
 ### POST 查询数据 HTTP响应 返回文件 例子
+
+注：demo文件夹中有示例csv文件
 
 #### 返回文件 HTTP响应 正常
 
