@@ -49,7 +49,7 @@
 
     Usage: main.py -v <version> [-p <port>] [-f] [-c] [-r]
     
-    -v <version> : 版本，float格式，如1.1，详见doc/conf.py  
+    -v <version> : 版本，float格式，如1.1，详见docs/conf.py  
     -p <port> ：端口，可在conf.py中更改，也可以启动时自定义  
     -f ：强制更新数据至 -v 所指定的的版本，需要关闭所有其他服务端进程  
     -c ：手动清除无效的合并数据(v1为0)，需要关闭所有其他服务端进程  
