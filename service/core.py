@@ -16,6 +16,17 @@ from service import helpers
 from docs import conf as CONFIG
 
 def get_path_from_data(data, path_attr):
+    """从合并数据中提取相应的path
+
+    从合并数据中提取相应的path并返回
+
+    参数：
+        path_attr (String)：需要提取的树形结构路径名称
+
+    返回：
+        Object[]：提取出的树形结构路径
+
+    """
     try:
         if '.' in path_attr:
             path_attr_obj = path_attr.split('.', 1)[0]

@@ -216,6 +216,8 @@ class SearchHandler(tornado.web.RequestHandler):
                                             doc = json.loads(bson.json_util.dumps(doc))
                                             # 提取数据内相应的树的路径
                                             doc_tree_path = core.get_path_from_data(doc, tree_path_attr)
+                                            if not doc_tree_path:
+                                                raise ValueError("路径不存在")
                                             # 如果这是第一条数据
                                             if not has_result:
                                                 # 如果这条数据有不为空的树的路径
