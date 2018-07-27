@@ -209,18 +209,11 @@ class Search:
             group = [{'$group' : group_dict}]
             sort = [{'$sort' : sort_dict}] if sort_dict else []
             pipline = match + group + sort
-            print("Pipline :", pipline)
-            sys.stdout.flush()
             return db[CONFIG.COMBINED_COLLECTION_NAME].aggregate(pipline, allowDiskUse=True)
         else:
             if sort_dict:
-                print("Match :", match_dict)
-                print("Sort :", sort_tuple)
-                sys.stdout.flush()
                 return db[CONFIG.COMBINED_COLLECTION_NAME].find(match_dict).sort(sort_tuple)
             else:
-                print("Match :", match_dict)
-                sys.stdout.flush()
                 return db[CONFIG.COMBINED_COLLECTION_NAME].find(match_dict)
     
 class TreeNode:
@@ -313,6 +306,9 @@ class TreeNode:
     	writer.writerow(self.summary)
     	for child in self.children:
     		child.recursive_write_tree(writer)
+    	if self.is_leaf:
+    		for data in self.raw_data:
+    			writer.writerow(data)
 
     def flatten_summary(self):
     	tmp_summary = {}
@@ -321,29 +317,3 @@ class TreeNode:
     			tmp_summary[attr+'_'+group_type] = self.summary[attr][group_type]
     	self.summary = tmp_summary
 
-# attr_p = ['v1', 'v2', 'v3.test_1', 'v3.test_2']        
-
-# data1 = {
-#     "v1" : 1,
-#     "v2" : 2,
-#     "v3" : {
-#         "test_1" : 10 
-#     }
-# }
-
-# path1 = ['A', 'B', 'C' ,'D']
-
-# data2 = {
-#     "v1" : 1,
-#     "v2" : 1,
-#     "v3" : {
-#         "test_2" : 10 
-#     }
-# }
-
-# path2 = ['A', 'B', 'C' ,'E']
-
-# root = TreeNode(data1, path1, attr_p, False)
-# root.insert_data(data2, path2, attr_p, False)
-
-# print(root.get_summary())

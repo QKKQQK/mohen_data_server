@@ -20,12 +20,8 @@ def get_path_from_data(data, path_attr):
         if '.' in path_attr:
             path_attr_obj = path_attr.split('.', 1)[0]
             path_attr_key = path_attr.split('.', 1)[1]
-            print(data[path_attr_obj][path_attr_key])
-            sys.stdout.flush()
             return data[path_attr_obj][path_attr_key]
         else:
-            print(data[path_attr])
-            sys.stdout.flush()
             return data[path_attr]
     except Exception:
         return []
