@@ -149,7 +149,7 @@ class SearchHandler(tornado.web.RequestHandler):
             # HTTP响应内容
             res = {
                 'code' : 1, 
-                'err_msg' : '数据格式不符合MongoDB格式: ' + str(e)
+                'err_msg' : '数据格式错误'
             }
             # 将错误信息写入输出缓冲区
             self.write(res)
@@ -185,7 +185,7 @@ class SearchHandler(tornado.web.RequestHandler):
                     except Exception:
                         res = {
                             'code' : 1, 
-                            'err_msg' : '数据类型不规范'
+                            'err_msg' : '数据格式错误'
                         }
                         self.write(res)
                         self.flush()
@@ -259,7 +259,7 @@ class SearchHandler(tornado.web.RequestHandler):
                                         if not has_result:
                                             res = {
                                                 'code' : 1, 
-                                                'err_msg' : '数据类型不规范'
+                                                'err_msg' : '数据格式错误'
                                             }
                                             has_error = True
                                             self.write(res)
@@ -307,7 +307,7 @@ class SearchHandler(tornado.web.RequestHandler):
                                 except Exception:
                                     res = {
                                         'code' : 1, 
-                                        'err_msg' : '数据类型不规范'
+                                        'err_msg' : '数据格式错误'
                                     }
                                     has_error = True
                                     self.write(res)
@@ -326,11 +326,19 @@ class SearchHandler(tornado.web.RequestHandler):
                     else:
                         res = {
                             'code' : 1, 
-                            'err_msg' : '数据类型不规范'
+                            'err_msg' : '数据格式错误'
                         }
                         self.write(res)
                         self.flush()
                         self.finish()
+            else:
+                res = {
+                    'code' : 1, 
+                    'err_msg' : '数据格式错误'
+                }
+                self.write(res)
+                self.flush()
+                self.finish()
 
 def periodic_remove_old_file():
     def wrapper():
