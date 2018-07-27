@@ -24,15 +24,11 @@
     * [POST 查询数据 字段要求](#post-查询数据-字段要求)
   * [POST 查询数据 HTTP响应 返回文件 例子](#post-查询数据-http响应-返回文件-例子)
     * [返回文件 HTTP响应 正常](#返回文件-http响应-正常)
-    * [返回文件 HTTP响应 JSON格式不正确](#返回文件-http响应-json格式不正确)
-    * [返回文件 HTTP响应 搜索条件数据格式不正确](#返回文件-http响应-搜索条件数据格式不正确)
-    * [返回文件 HTTP响应 搜索条件类型不规范](#返回文件-http响应-搜索条件类型不规范)
+    * [返回文件 HTTP响应 数据格式错误](#返回文件-http响应-数据格式错误)
     * [返回文件 HTTP响应 搜索无结果](#返回文件-http响应-搜索无结果)
   * [POST 查询数据 HTTP响应 不返回文件 例子](#post-查询数据-http响应-不返回文件-例子)
     * [不返回文件 HTTP响应 正常](#不返回文件-http响应-正常)
-    * [不返回文件 HTTP响应 JSON格式不正确](#不返回文件-http响应-json格式不正确)
-    * [不返回文件 HTTP响应 搜索条件数据格式不正确](#不返回文件-http响应-搜索条件数据格式不正确)
-    * [不返回文件 HTTP响应 搜索条件类型不规范](#不返回文件-http响应-搜索条件类型不规范)
+    * [不返回文件 HTTP响应 数据格式错误](#不返回文件-http响应-数据格式错误)
     * [不返回文件 HTTP响应 搜索无结果](#不返回文件-http响应-搜索无结果)
 
 ## 功能与注意事项
@@ -634,36 +630,16 @@ aggr_attr_group_type | 聚合查询操作("max", "min", "sum", "avg") | 否(aggr
     }
   
     
-#### 返回文件 HTTP响应 JSON格式不正确
+#### 返回文件 HTTP响应 数据格式错误  
+
+##### 对应异常：JSON格式不正确，搜索条件的类型出错，如pid需要Object[]类型实际传输数据为Object类型，搜索条件无法转换成正确的BSON格式，如ObjectId不是24个hex字符
 
 [返回目录](#目录)
 
     {
         "code": 1,
-        "err_msg": "数据格式错误: 'metadata'"
-    }
-
-#### 返回文件 HTTP响应 搜索条件数据格式不正确
-
-##### 对应异常：搜索条件无法转换成正确的BSON格式，如ObjectId不是24个hex字符
-
-[返回目录](#目录)
-
-    {
-        "code": 1,
-        "err_msg": "数据格式不符合MongoDB格式: '00000000000000009000009' is not a valid ObjectId, it must be a 12-byte input or a 24-character hex string"
-    }
-    
-#### 返回文件 HTTP响应 搜索条件类型不规范
-
-##### 对应异常：搜索条件的类型出错，如pid需要Object[]类型实际传输数据为Object类型
-
-[返回目录](#目录)
-
-    {
-        "code": 1,
-        "err_msg": "数据类型不规范"
-    }
+        "err_msg": "数据格式错误"
+    }    
     
 #### 返回文件 HTTP响应 搜索无结果
 
@@ -753,36 +729,16 @@ aggr_attr_group_type | 聚合查询操作("max", "min", "sum", "avg") | 否(aggr
         }
     }
     
-#### 不返回文件 HTTP响应 JSON格式不正确
+#### 不返回文件 HTTP响应 数据格式错误  
+
+##### 对应异常：JSON格式不正确，搜索条件的类型出错，如pid需要Object[]类型实际传输数据为Object类型，搜索条件无法转换成正确的BSON格式，如ObjectId不是24个hex字符
 
 [返回目录](#目录)
 
     {
         "code": 1,
-        "err_msg": "数据格式错误: 'metadata'"
+        "err_msg": "数据格式错误"
     }    
-
-#### 不返回文件 HTTP响应 搜索条件数据格式不正确
-
-##### 对应异常：搜索条件无法转换成正确的BSON格式，如ObjectId不是24个hex字符
-
-[返回目录](#目录)
-
-    {
-        "code": 1,
-        "err_msg": "数据格式不符合MongoDB格式: '00000000000000009000009' is not a valid ObjectId, it must be a 12-byte input or a 24-character hex string"
-    }
-    
-#### 不返回文件 HTTP响应 搜索条件类型不规范
-
-##### 对应异常：搜索条件的类型出错，如pid需要Object[]类型实际传输数据为Object类型
-
-[返回目录](#目录)
-
-    {
-        "code": 1,
-        "err_msg": "数据类型不规范"
-    }
     
 #### 不返回文件 HTTP响应 搜索无结果
 
