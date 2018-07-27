@@ -235,66 +235,115 @@ class TreeNode:
     def get_id(self):
         return self.id
 
+    def get_summary(self):
+        return self.summary
+
+    def get_children(self):
+        return self.children
+
     def has_child(self, child_id):
         for i, child in enumerate(self.children):
-        	if child.get_id() == child_id:
-        		return True, i
+            if child.get_id() == child_id:
+                return True, i
         return False, -1
 
     def is_leaf(self):
         return self.is_leaf
 
     def insert_data(self, data, path, attr_proj, show_raw_data):
-    	# 更新当前节点数据统计信息
-    	self.calc_stats(data, attr_proj, group_type)
-    	# 当前节点是非叶子节点
+        # 更新当前节点数据统计信息
+        self.calc_stats(data, attr_proj)
+        # 当前节点是非叶子节点
         if not self.is_leaf:
-        	has_cur_child, index = self.has_child(path[1])
-        	# 如果path下一个节点存在于self.children中
-        	if has_cur_child:
-        		self.children[index].insert_data(data, path[1:], attr_proj, show_raw_data)
-        	# 如果不存在
-        	else:
-        		# 递归创建子节点，将子节点加入self.children
-        		child = TreeNode(data, path[1:], attr_proj, show_raw_data)
-        		self.children.append(child)
+            has_cur_child, index = self.has_child(path[1])
+            # 如果path下一个节点存在于self.children中
+            if has_cur_child:
+                self.children[index].insert_data(data, path[1:], attr_proj, show_raw_data)
+            # 如果不存在
+            else:
+                # 递归创建子节点，将子节点加入self.children
+                child = TreeNode(data, path[1:], attr_proj, show_raw_data)
+                self.children.append(child)
         # 当前节点是叶子节点
         else:
-        	if show_raw_data:
-    			self.raw_data.append(data)
+            if show_raw_data:
+                self.raw_data.append(data)
      
     def filter_attr(self, data, attr_proj):
-    	result = {}
-    	for attr in attr_proj:
+        result = {}
+        for attr in attr_proj:
             # 如果attr为v3.attr或v3_norm.attr的格式
             if '.' in attr:
-            	attr_obj = attr.split('.', 1)[0]
-            	attr_key = attr.split('.', 1)[1]
-            	if attr_obj in data:
-            		if attr_key in datap[attr_obj]:
-            			result[attr.replace('.', '_')] = data[attr_obj][attr_key]
+                attr_obj = attr.split('.', 1)[0]
+                attr_key = attr.split('.', 1)[1]
+                if attr_obj in data:
+                    if attr_key in data[attr_obj]:
+                        result[attr.replace('.', '_')] = data[attr_obj][attr_key]
             # 如果attr为v1, v2, v1_norm, v2_norm
             else:
-            	if attr in data:
-                	result[attr] = data[attr]
+                if attr in data:
+                    result[attr] = data[attr]
         return result
 
     def calc_stats(self, data, attr_proj):
-    	data_dict = self.filter_attr(data, attr_proj)
-    	for attr in data_dict.keys():
-    		if attr in self.summary:
-    			self.summary[attr]['count'] += 1
-    			self.summary[attr]['max'] = max(data_dict[attr], self.summary[attr]['max'])
-    			self.summary[attr]['min'] = min(data_dict[attr], self.summary[attr]['min'])
-    			self.summary[attr]['sum'] += data_dict[attr]
-    			self.summary[attr]['avg'] = self.summary[attr]['sum'] / self.summary[attr]['count']
-    		else:
-    			self.summary[attr]['count'] = 1
-    			self.summary[attr]['max'] = data_dict[attr]
-    			self.summary[attr]['min'] = data_dict[attr]
-    			self.summary[attr]['sum'] = data_dict[attr]
-    			self.summary[attr]['avg'] = data_dict[attr]
-    			
+        data_dict = self.filter_attr(data, attr_proj)
+        for attr in data_dict.keys():
+            if attr in self.summary:
+                self.summary[attr]['count'] += 1
+                self.summary[attr]['max'] = max(data_dict[attr], self.summary[attr]['max'])
+                self.summary[attr]['min'] = min(data_dict[attr], self.summary[attr]['min'])
+                self.summary[attr]['sum'] += data_dict[attr]
+                self.summary[attr]['avg'] = self.summary[attr]['sum'] / self.summary[attr]['count']
+            else:
+                self.summary[attr] = {}
+                self.summary[attr]['count'] = 1
+                self.summary[attr]['max'] = data_dict[attr]
+                self.summary[attr]['min'] = data_dict[attr]
+                self.summary[attr]['sum'] = data_dict[attr]
+                self.summary[attr]['avg'] = data_dict[attr]
 
-    	
+    def recursive_write_tree(self, writer):
+    	self.flatten_summary()
+    	self.summary['node_id'] = self.id
+    	self.summary['is_leaf'] = self.is_leaf
+    	children_list = []
+    	for child in self.children:
+    		children_list.append(child.get_id())
+    	self.summary['children'] = children_list
+    	writer.writerow(self.summary)
+    	for child in self.children:
+    		child.recursive_write_tree(writer)
 
+    def flatten_summary(self):
+    	tmp_summary = {}
+    	for attr in self.summary:
+    		for group_type in self.summary[attr].keys():
+    			tmp_summary[attr+'_'+group_type] = self.summary[attr][group_type]
+    	self.summary = tmp_summary
+
+# attr_p = ['v1', 'v2', 'v3.test_1', 'v3.test_2']        
+
+# data1 = {
+#     "v1" : 1,
+#     "v2" : 2,
+#     "v3" : {
+#         "test_1" : 10 
+#     }
+# }
+
+# path1 = ['A', 'B', 'C' ,'D']
+
+# data2 = {
+#     "v1" : 1,
+#     "v2" : 1,
+#     "v3" : {
+#         "test_2" : 10 
+#     }
+# }
+
+# path2 = ['A', 'B', 'C' ,'E']
+
+# root = TreeNode(data1, path1, attr_p, False)
+# root.insert_data(data2, path2, attr_p, False)
+
+# print(root.get_summary())
