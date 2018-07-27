@@ -28,6 +28,8 @@
  
 ## 服务端结构
 
+[返回目录](#目录)
+
 ![服务端结构](https://github.com/QKKQQK/mh_data/blob/feat/tree-representation/docs/app_structure.jpg)
  
 ## 数据库数据格式
