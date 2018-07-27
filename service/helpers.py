@@ -9,6 +9,15 @@ import numpy
 from docs import conf as CONFIG
 
 def get_UUID():
+    """生成UUID1
+
+    生成用于返回和生成文件的UUID1
+    注：使用云主机时可能出现随机性不足生成相同UUID1
+
+    返回：
+        String：生成的UUID1
+
+    """
     return str(uuid.uuid1())
 
 def log10_normalize(n, version):

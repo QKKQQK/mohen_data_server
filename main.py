@@ -206,62 +206,66 @@ class SearchHandler(tornado.web.RequestHandler):
                             for attr in tree_attr_proj:
                                 for group_type in tree_group_type:
                                     fieldnames.append(attr.replace('.', '_')+'_'+group_type)
-                            with open(('files/'+res_uuid+'.csv'), 'w', newline='') as f:
-                                writer = None
-                                # 储存根节点
-                                root_nodes = {}
-                                try:
-                                    for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
-                                        doc = json.loads(bson.json_util.dumps(doc))
-                                        # 提取数据内相应的树的路径
-                                        doc_tree_path = core.get_path_from_data(doc, tree_path_attr)
-                                        # 如果这是第一条数据
-                                        if not has_result:
-                                            # 如果这条数据有不为空的树的路径
-                                            if doc_tree_path:
-                                                res = {
-                                                    'code' : 0,
-                                                    'data' : {
-                                                        'uuid' : res_uuid
+                            try:
+                                with open(('files/'+res_uuid+'.csv'), 'w', newline='') as f:
+                                    writer = None
+                                    # 储存根节点
+                                    root_nodes = {}
+                                    try:
+                                        for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
+                                            doc = json.loads(bson.json_util.dumps(doc))
+                                            # 提取数据内相应的树的路径
+                                            doc_tree_path = core.get_path_from_data(doc, tree_path_attr)
+                                            # 如果这是第一条数据
+                                            if not has_result:
+                                                # 如果这条数据有不为空的树的路径
+                                                if doc_tree_path:
+                                                    res = {
+                                                        'code' : 0,
+                                                        'data' : {
+                                                            'uuid' : res_uuid
+                                                        }
                                                     }
-                                                }
-                                                self.write(res)
-                                                self.flush()
-                                                self.finish()
-                                                has_result = True
-                                                fieldnames += list(doc.keys())
-                                                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
-                                                writer.writeheader()
-                                                root_nodes[doc_tree_path[0]['$oid']] = TreeNode(doc, doc_tree_path ,tree_attr_proj, show_raw_data)
-                                            # 如果制定的树的路径不存在，跳过数据
-                                            else:
-                                                pass
-                                        # 如果不是第一条数据
-                                        else:
-                                            # 如果这条数据有不为空的树的路径
-                                            if doc_tree_path:
-                                                # 如果根节点已经存在
-                                                if doc_tree_path[0]['$oid'] in root_nodes:
-                                                    root_nodes[doc_tree_path[0]['$oid']].insert_data(doc, doc_tree_path, tree_attr_proj, show_raw_data)
-                                                # 如果根节点不存在
+                                                    self.write(res)
+                                                    self.flush()
+                                                    self.finish()
+                                                    has_result = True
+                                                    fieldnames += list(doc.keys())
+                                                    writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+                                                    writer.writeheader()
+                                                    root_nodes[str(doc_tree_path[0])] = TreeNode(doc, doc_tree_path ,tree_attr_proj, show_raw_data)
+                                                # 如果制定的树的路径不存在，跳过数据
                                                 else:
-                                                    root_nodes[doc_tree_path[0]['$oid']] = TreeNode(doc, doc_tree_path ,tree_attr_proj, show_raw_data)
-                                            # 如果制定的树的路径不存在，跳过数据
+                                                    pass
+                                            # 如果不是第一条数据
                                             else:
-                                                pass
-                                    for root_key in root_nodes.keys():
-                                        root_nodes[root_key].set_root()
-                                        root_nodes[root_key].recursive_write_tree(writer)
-                                except Exception as e:
-                                    if not has_result:
-                                        res = {
-                                            'code' : 1, 
-                                            'err_msg' : '数据类型不规范'
-                                        }
-                                        has_error = True
-                                        self.write(res)
-                                        self.flush()
-                                        self.finish()
+                                                # 如果这条数据有不为空的树的路径
+                                                if doc_tree_path:
+                                                    # 如果根节点已经存在
+                                                    if str(doc_tree_path[0]) in root_nodes:
+                                                        root_nodes[str(doc_tree_path[0])].insert_data(doc, doc_tree_path, tree_attr_proj, show_raw_data)
+                                                    # 如果根节点不存在
+                                                    else:
+                                                        root_nodes[str(doc_tree_path[0])] = TreeNode(doc, doc_tree_path ,tree_attr_proj, show_raw_data)
+                                                # 如果制定的树的路径不存在，跳过数据
+                                                else:
+                                                    pass
+                                        for root_key in root_nodes.keys():
+                                            root_nodes[root_key].set_root()
+                                            root_nodes[root_key].recursive_write_tree(writer)
+                                    except Exception as e:
+                                        if not has_result:
+                                            res = {
+                                                'code' : 1, 
+                                                'err_msg' : '数据类型不规范'
+                                            }
+                                            has_error = True
+                                            self.write(res)
+                                            self.flush()
+                                            self.finish()
+                            except Exception:
+                                # 罕见的24内出现两个UUID1相同情况
+                                pass
                             if not has_result:
                                 if not has_error:
                                     # HTTP响应内容

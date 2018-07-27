@@ -372,7 +372,7 @@ class TreeNode:
             show_raw_data (Boolean)：是否保存合并数据(不保存则仅更新节点统计数据)
 
         """
-        self.id = path[0]
+        self.id = str(path[0])
         # 判定是否为叶子节点
         self.is_leaf = True if len(path) == 1 else False
         # 判定是否为根节点
@@ -463,7 +463,7 @@ class TreeNode:
         self.calc_stats(data, attr_proj)
         # 当前节点是非叶子节点
         if not self.is_leaf:
-            has_cur_child, index = self.has_child(path[1])
+            has_cur_child, index = self.has_child(str(path[1]))
             # 如果path下一个节点存在于self.children中
             if has_cur_child:
                 self.children[index].insert_data(data, path[1:], attr_proj, show_raw_data)
