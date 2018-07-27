@@ -15,7 +15,41 @@ import numpy
 from service import helpers
 from docs import conf as CONFIG
 
+def get_path_from_data(data, path_attr):
+    """从合并数据中提取相应的path
+
+    从合并数据中提取相应的path并返回
+
+    参数：
+        path_attr (String)：需要提取的树形结构路径名称
+
+    返回：
+        Object[]：提取出的树形结构路径
+
+    """
+    try:
+        if '.' in path_attr:
+            path_attr_obj = path_attr.split('.', 1)[0]
+            path_attr_key = path_attr.split('.', 1)[1]
+            return data[path_attr_obj][path_attr_key]
+        else:
+            return data[path_attr]
+    except Exception:
+        return []
+
 def get_time_range(record_bson):
+    """计算并返回数据所属时间(分钟级)
+
+    根据数据时间计算数据在合并数据中所属时间(分钟级)
+
+    参数：
+        record_bson (Object)：需要计算的数据
+
+    返回：
+        datetime.datetime：时间范围下限
+        datetime.datetime：时间范围上限
+
+    """
     begin = datetime.datetime(year=record_bson['utc_date'].year, \
                               month=record_bson['utc_date'].month, \
                               day=record_bson['utc_date'].day, \
@@ -26,8 +60,21 @@ def get_time_range(record_bson):
     return begin, end
 
 def should_combine(record_bson, record_bson_old):
+    """判定两条数据是否应该并入同一合并数据
+
+    根据字段和时间条件判定两条数据是否应该并入同一合并数据
+
+    参数：
+        record_bson (Object)：需要计算的数据
+        record_bson_old (Object)：需要计算的另一组数据 
+
+    返回：
+        boolean：是否应该合并 
+
+    """
     combine = True
     try:
+        # 比较各字段与时间
         attr_list = ['pid', 'name', 'exttype', 'type', 'tag', 'klist', 'rlist', 'extlist', 'ugroup', 'uid', 'fid', 'openid']
         for attr in attr_list:
             combine = combine and (record_bson[attr] == record_bson_old[attr])
@@ -50,6 +97,7 @@ def generate_v_val_inc_query(record_bson, record_bson_old={}, sign=1):
         sign (int)：1或-1，用于调整inc的正负，当需要减去record_bson的时候设为-1
 
     返回：
+        dict：修改格式后的v1，v2，v3值，扁平化后
         dict：修改格式后的v1，v2，v3值
 
     """
@@ -57,9 +105,6 @@ def generate_v_val_inc_query(record_bson, record_bson_old={}, sign=1):
     result_dict = {}
     result['v1'] = sign * (record_bson['v1'] - (record_bson_old['v1'] if record_bson_old else 0))
     result['v2'] = sign * (record_bson['v2'] - (record_bson_old['v2'] if record_bson_old else 0))
-    # # 当新值v3为空时，如果这是第一次插入record或者原有record的v3为空时，删除v3原始值{}
-    # if not record_bson['v3'] and ((not record_bson_old) or (not record_bson_old['v3'])):
-    #     del result['v3']
     result_dict['v1'] = result['v1']
     result_dict['v2'] = result['v2']
     result_dict['v3'] = {}
@@ -185,10 +230,33 @@ async def update_combined_collection_norm_val(handler, new_record, inc):
                 {'$inc' : inc_params}, upsert=True)
 
 async def sample_for_version(db):
+    """从数据库随机取出一个数据，返回版本
+
+    从数据库随机取出一个数据，返回版本
+
+    参数：
+        db (motor.motor_tornado.MotorClient)：数据库
+
+    返回：
+        float：版本号
+
+    """
     doc = await db[CONFIG.COMBINED_COLLECTION_NAME].find_one({'flag' : 1})
-    return doc['version']
+    if doc:
+        return doc['version']
+    else:
+        return 0.0
 
 async def version_check(db, input_version):
+    """对比输入的版本号和抽样的现有版本号，并提示
+
+    对比输入的版本号和抽样的现有版本号，并提示
+
+    参数：
+        db (motor.motor_tornado.MotorClient)：数据库
+        inpu_version (float)：输入的版本号
+
+    """
     current_version = await sample_for_version(db)
     if current_version != input_version:
         res = input("Input version v"+str(input_version)+" does not match with current version v"+str(current_version)+", proceed? [Y/N] ")
@@ -201,6 +269,16 @@ async def version_check(db, input_version):
         sys.stdout.flush()
 
 async def update_norm_to_version(db, version):
+    """强制更新所有合并数据至制定版本
+
+    强制更新所有合并数据至制定版本，更改版本和归一值
+
+    参数：
+        db (motor.motor_tornado.MotorClient)：数据库
+        version (float)：输入的版本号
+
+    """
+    # 抽样版本号
     current_version = await sample_for_version(db)
     res = input("Update data from version v" + str(current_version) + " to version v" + str(version) + ", proceed? [Y/N] ")
     if res == 'Y' or res == 'y':
@@ -209,6 +287,7 @@ async def update_norm_to_version(db, version):
         sys.exit()
     print("Updating data to version v" + str(version) + " ...")
     sys.stdout.flush()
+    # 查询并更新所有不符合输入版本的合并数据
     cursor = db[CONFIG.COMBINED_COLLECTION_NAME].find({'version' : {'$ne' : version}})
     count = 0
     for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
@@ -224,14 +303,25 @@ async def update_norm_to_version(db, version):
                 {'$set' : set_params})
         count += 1
     print('Update complete,', count, 'documents updated')
+    # 显示新版本
     print("Application version v" + str(version))
     sys.stdout.flush()
 
 async def clean_up_empty_combined_data(db):
+    """删除无效的合并数据
+
+    删除无效的合并数据，即v1为0，flag为1的数据
+
+    参数：
+        db (motor.motor_tornado.MotorClient)：数据库
+
+    """
     print('Cleaning up empty combined data...')
     sys.stdout.flush()
+    # 查找需要更新的合并数据
     cursor = db[CONFIG.COMBINED_COLLECTION_NAME].find({'v1' : {'$eq' : 0}, 'flag' : 1})
     count = 0
+    # 删除数据
     for doc in await cursor.to_list(length=CONFIG.TO_LIST_BUFFER_LENGTH):
         await db[CONFIG.COMBINED_COLLECTION_NAME].update_one({'_id': doc['_id']}, {'$set': {'flag': 0}})
         count += 1
