@@ -323,6 +323,14 @@ class SearchHandler(tornado.web.RequestHandler):
                                     self.write(res)
                                     self.flush()
                                     self.finish()
+                    else:
+                        res = {
+                            'code' : 1, 
+                            'err_msg' : '数据类型不规范'
+                        }
+                        self.write(res)
+                        self.flush()
+                        self.finish()
 
 def periodic_remove_old_file():
     def wrapper():
@@ -356,7 +364,7 @@ def usage():
     打印Usage信息，-v 版本(如：1.0，float格式)，-p：端口，
     -f：强制覆盖归一值(更新版本LOG10_MAX值时)
     """
-    print('Usage: main.py -v <version> [-p <port>] [-f] [-c]')
+    print('Usage: main.py -v <version> [-p <port>] [-f] [-c] [-r]')
 
 def main():
     """配置服务端，启用事件循环
