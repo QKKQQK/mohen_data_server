@@ -161,6 +161,7 @@ class SearchHandler(tornado.web.RequestHandler):
         if req_data and req_metadata:
             if 'file' in req_metadata:
                 cursor = Search(req_data).to_query(self.settings['db'])
+                # 不返回文件的情况
                 if not req_metadata['file']:
                     # MotorCursor，这一步不进行I/O
                     result = []
@@ -189,6 +190,7 @@ class SearchHandler(tornado.web.RequestHandler):
                         self.write(res)
                         self.flush()
                         self.finish()
+                # 返回文件的情况
                 else:
                     if 'tree' in req_metadata:
                         if req_metadata['tree']:
@@ -200,7 +202,7 @@ class SearchHandler(tornado.web.RequestHandler):
                             tree_path_attr = req_metadata["path"]
                             show_raw_data = req_metadata["show_raw_data"]
                             # csv 文件 header
-                            fieldnames = ['node_id', 'children', 'is_leaf']
+                            fieldnames = ['node_id', 'children', 'is_leaf', 'is_root']
                             for attr in tree_attr_proj:
                                 for group_type in tree_group_type:
                                     fieldnames.append(attr.replace('.', '_')+'_'+group_type)
@@ -248,6 +250,7 @@ class SearchHandler(tornado.web.RequestHandler):
                                             else:
                                                 pass
                                     for root_key in root_nodes.keys():
+                                        root_nodes[root_key].set_root()
                                         root_nodes[root_key].recursive_write_tree(writer)
                                 except Exception as e:
                                     if not has_result:
