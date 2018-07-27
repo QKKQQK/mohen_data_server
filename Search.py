@@ -400,33 +400,33 @@ class TreeNode:
         返回当前节点的id，用于判断子节点是否已经存在
 
         返回：
-        	Object：当前节点的id，{'$oid' : "000000000000000000000000"} 格式
+            Object：当前节点的id，{'$oid' : "000000000000000000000000"} 格式
         
         """
         return self.id
 
     def get_children(self):
-    	"""返回当前节点的子节点Array
+        """返回当前节点的子节点Array
 
         返回当前节点的子节点Array
 
         返回：
-        	Object[]：子节点Array，叶子节点返回[]
+            Object[]：子节点Array，叶子节点返回[]
         
         """
         return self.children
 
     def has_child(self, child_id):
-    	"""检查当前节点是否包含子节点
+        """检查当前节点是否包含子节点
 
         检查当前节点是否包含子节点，对比path和子节点id
 
         参数：
-        	child_id (Object)：需要查找的子节点id，{'$oid' : "000000000000000000000000"} 格式
+            child_id (Object)：需要查找的子节点id，{'$oid' : "000000000000000000000000"} 格式
 
         返回：
-        	Boolean：是否包含子节点
-        	Int：子节点在self.children中的index
+            Boolean：是否包含子节点
+            Int：子节点在self.children中的index
         
         """
         for i, child in enumerate(self.children):
@@ -435,18 +435,18 @@ class TreeNode:
         return False, -1
 
     def is_leaf(self):
-    	"""检查当前节点是否是叶子节点
+        """检查当前节点是否是叶子节点
 
         检查当前节点是否是叶子节点
 
         返回：
-        	Boolean：是否是叶子节点
+            Boolean：是否是叶子节点
         
         """
         return self.is_leaf
 
     def insert_data(self, data, path, attr_proj, show_raw_data):
-    	"""在当前树形结构中插入数据
+        """在当前树形结构中插入数据
 
         更新当前节点统计数据，然后递归建立path上的子节点或使用子节点的insert_data，
         直到叶子节点(path长度为1)，叶子节点根据show_raw_data选择是否储存数据，
@@ -478,19 +478,19 @@ class TreeNode:
                 self.raw_data.append(data)
      
     def filter_attr(self, data, attr_proj):
-    	"""从数据中提取并扁平化结果中需要显示的数据
+        """从数据中提取并扁平化结果中需要显示的数据
 
-    	从数据中提取并扁平化结果中需要显示的数据，
-    	辅助函数，用于更方便计算统计数据
+        从数据中提取并扁平化结果中需要显示的数据，
+        辅助函数，用于更方便计算统计数据
 
-		参数：
-			data (Object[])：需要插入的数据
-			attr_proj (String[])：需要在结果中包括的值
+        参数：
+            data (Object[])：需要插入的数据
+            attr_proj (String[])：需要在结果中包括的值
 
-		返回：
-			Object：扁平化过的数据
+        返回：
+            Object：扁平化过的数据
 
-    	"""
+        """
         result = {}
         for attr in attr_proj:
             # 如果attr为v3.attr或v3_norm.attr的格式
@@ -507,20 +507,20 @@ class TreeNode:
         return result
 
     def calc_stats(self, data, attr_proj):
-    	"""计算当前节点统计数据
+        """计算当前节点统计数据
 
-		根据数据计算或更新当前节点统计数据
+        根据数据计算或更新当前节点统计数据
 
-		参数：
-			data (Object[])：需要插入的数据
-			attr_proj (String[])：需要在结果中包括的值
+        参数：
+            data (Object[])：需要插入的数据
+            attr_proj (String[])：需要在结果中包括的值
 
-    	"""
-    	# 扁平化数据
+        """
+        # 扁平化数据
         data_dict = self.filter_attr(data, attr_proj)
         # v1, v2, v3, v3_attr, v1_norm, v2_norm, v3_norm_attr
         for attr in data_dict.keys():
-        	# 更新已有统计数据
+            # 更新已有统计数据
             if attr in self.summary:
                 self.summary[attr]['count'] += 1
                 self.summary[attr]['max'] = max(data_dict[attr], self.summary[attr]['max'])
@@ -537,20 +537,20 @@ class TreeNode:
                 self.summary[attr]['avg'] = data_dict[attr]
 
     def recursive_write_tree(self, writer):
-    	"""递归遍历树，将节点数据写入csv文件
+        """递归遍历树，将节点数据写入csv文件
 
-    	递归遍历树，将节点写入csv文件
-    	当前节点会先将当前节点统计数据写入csv文件，
-    	再将用子节点的recursive_write_tree写入子节点数据
-    	叶子节点将根据情况写入合并数据
+        递归遍历树，将节点写入csv文件
+        当前节点会先将当前节点统计数据写入csv文件，
+        再将用子节点的recursive_write_tree写入子节点数据
+        叶子节点将根据情况写入合并数据
 
-    	参数：
-    		writer (csv.DictWriter)：用于写入文件的writer，
-    				根据header中字段自动写入dict中相应值
+        参数：
+            writer (csv.DictWriter)：用于写入文件的writer，
+                    根据header中字段自动写入dict中相应值
 
-    	"""
+        """
 
-    	# 将统计数据扁平化
+        # 将统计数据扁平化
         self.flatten_summary()
         # 记录当前节点除统计数据外的信息
         self.summary['node_id'] = self.id
@@ -571,11 +571,11 @@ class TreeNode:
                 writer.writerow(data)
 
     def flatten_summary(self):
-    	"""扁平化统计数据
+        """扁平化统计数据
 
-    	扁平化统计数据
+        扁平化统计数据
 
-    	"""
+        """
         tmp_summary = {}
         for attr in self.summary:
             for group_type in self.summary[attr].keys():
